@@ -1,0 +1,6 @@
+{
+  "name": "Cheers Guide",
+  "description": "Guia operacional premium para barmans do Cheers. Cocktails, Sangrias e Guia de Gins.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
