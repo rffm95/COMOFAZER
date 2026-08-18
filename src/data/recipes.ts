@@ -292,28 +292,52 @@ export const RECIPES: Receita[] = [
     tags: ['tequila', 'laranja']
   },
   {
-    id: 'basil-smash',
-    nome: 'Basil Smash',
+    id: 'basil-smash-classico',
+    nome: 'Basil Smash Clássico',
     categoria: 'Cocktails',
-    copo: 'Taça de martini',
-    tecnica: 'Dry shake + shake + double strainer',
+    copo: 'Copo baixo',
+    tecnica: 'Shaker + double strainer',
     ingredientes: [
-      { quantidade: '5', unidade: 'cl', nome: 'Gin' },
-      { quantidade: '3', unidade: 'cl', nome: 'Sumo de limão' },
+      { quantidade: '6', unidade: 'cl', nome: 'Gin' },
+      { quantidade: '3', unidade: 'cl', nome: 'Sumo de limão fresco' },
       { quantidade: '3', unidade: 'cl', nome: 'Xarope de açúcar' },
-      { quantidade: '1', unidade: 'unid', nome: 'Clara de ovo' },
-      { quantidade: 'q.b.', unidade: 'folhas', nome: 'Manjericão' }
+      { quantidade: '6-8', unidade: 'folhas', nome: 'Manjericão' }
     ],
     passos: [
-      'Colocar os ingredientes no shaker sem gelo.',
-      'Adicionar folhas de manjericão inteiras.',
-      'Fazer dry shake.',
-      'Adicionar gelo.',
-      'Agitar novamente.',
-      'Fazer double strainer para taça de martini.'
+      'Coloque o manjericão no shaker vazio.',
+      'Pressione suavemente as folhas para libertar os óleos e o aroma.',
+      'Adicione o gin, o limão e o xarope de açúcar.',
+      'Encha o shaker com gelo.',
+      'Bata vigorosamente durante 10–12 segundos.',
+      'Faça uma dupla coagem.',
+      'Sirva num copo baixo com gelo e uma folha de manjericão a decorar.'
     ],
-    garnish: 'Folha de manjericão',
+    garnish: 'Decorar com manjericão',
     tags: ['gin', 'manjericão', 'clássico']
+  },
+  {
+    id: 'basil-smash-sour',
+    nome: 'Basil Smash Sour',
+    categoria: 'Cocktails',
+    copo: 'Taça martini',
+    tecnica: 'Dry shake + shake + double strainer',
+    ingredientes: [
+      { quantidade: '6', unidade: 'cl', nome: 'Gin' },
+      { quantidade: '3', unidade: 'cl', nome: 'Sumo de limão fresco' },
+      { quantidade: '3', unidade: 'cl', nome: 'Xarope de açúcar' },
+      { quantidade: '6-8', unidade: 'folhas', nome: 'Manjericão' },
+      { quantidade: '1', unidade: 'unid', nome: 'Clara de ovo' }
+    ],
+    passos: [
+      'Coloque o manjericão no shaker vazio e pressione suavemente as folhas.',
+      'Adicione o gin, o sumo de limão, o xarope de açúcar e as claras de 1 ovo.',
+      'Feche bem o shaker e faça um dry shake, sem gelo, durante 10–15 segundos.',
+      'Adicionar gelo e fazer um segundo shake vigoroso durante 10–12 segundos.',
+      'Fazer uma dupla coagem para obter uma textura mais suave.',
+      'Sirva na taça martini, previamente arrefecida.'
+    ],
+    garnish: 'Folha de manjericão sobre a espuma',
+    tags: ['gin', 'manjericão', 'sour', 'ovo']
   },
   {
     id: 'negroni',
