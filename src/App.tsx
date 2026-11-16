@@ -12,6 +12,25 @@ import RecipeCard from "./components/RecipeCard";
 import RecipeDetail from "./components/RecipeDetail";
 import GinGarnishTable from "./components/GinGarnishTable";
 import DrinkImage from "./components/DrinkImage";
+import {
+  DICTS,
+  Lang,
+  LangContext,
+  detectLang,
+  localizeGin,
+  localizeRecipe,
+} from "./i18n";
+
+const recipeText = (r: Receita) =>
+  [
+    r.nome,
+    r.categoria,
+    r.copo,
+    r.tecnica,
+    r.garnish,
+    ...r.tags,
+    ...r.ingredientes.map((i) => i.nome),
+  ].join(" ");
 
 const prefersCompact = () =>
   typeof window !== "undefined" &&
@@ -28,9 +47,28 @@ export default function App() {
     "Todos",
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRecipe, setSelectedRecipe] = useState<Receita | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
   const [sort, setSort] = useState<"menu" | "az">("menu");
+  const [lang, setLang] = useLocalStorage<Lang>("lang", detectLang());
+  const t = DICTS[lang];
+  const recipes = useMemo(
+    () => RECIPES.map((r) => localizeRecipe(r, lang)),
+    [lang],
+  );
+  const gins = useMemo(
+    () => GIN_GARNISHES.map((g) => localizeGin(g, lang)),
+    [lang],
+  );
+
+  const selectedRecipe = recipes.find((r) => r.id === selectedId) ?? null;
+  const setSelectedRecipe = (recipe: Receita | null) =>
+    setSelectedId(recipe ? recipe.id : null);
+
+  useEffect(() => {
+    document.documentElement.lang = t.htmlLang;
+    document.title = t.title;
+  }, [t]);
 
   useEffect(() => {
     const theme = isDarkMode ? "dark" : "light";
@@ -47,50 +85,62 @@ export default function App() {
 
   const filteredRecipes = useMemo(
     () =>
-      RECIPES.filter(
-        (recipe) =>
-          (activeCategory === "Todos" || recipe.categoria === activeCategory) &&
-          (!showFavorites || favorites.includes(recipe.id)) &&
-          matchesQuery(
-            searchQuery,
-            [
-              recipe.nome,
-              recipe.categoria,
-              recipe.copo,
-              recipe.tecnica,
-              recipe.garnish,
-              ...recipe.tags,
-              ...recipe.ingredientes.map((i) => i.nome),
-            ].join(" "),
-          ),
-      ).sort((a, b) =>
-        sort === "az"
-          ? a.nome.localeCompare(b.nome, "pt")
-          : Number(Boolean(getDrinkImage(b.id))) -
-            Number(Boolean(getDrinkImage(a.id))),
-      ),
-    [searchQuery, activeCategory, showFavorites, favorites, sort],
+      recipes
+        .filter(
+          (recipe, index) =>
+            (activeCategory === "Todos" ||
+              recipe.categoria === activeCategory) &&
+            (!showFavorites || favorites.includes(recipe.id)) &&
+            // Pesquisa nos dois idiomas: um termo em PT ou ES encontra a bebida.
+            matchesQuery(
+              searchQuery,
+              recipeText(recipe) +
+                " " +
+                recipeText(RECIPES[index]) +
+                " " +
+                t.categories[recipe.categoria],
+            ),
+        )
+        .sort((a, b) =>
+          sort === "az"
+            ? a.nome.localeCompare(b.nome, lang)
+            : Number(Boolean(getDrinkImage(b.id))) -
+              Number(Boolean(getDrinkImage(a.id))),
+        ),
+    [
+      recipes,
+      t,
+      lang,
+      searchQuery,
+      activeCategory,
+      showFavorites,
+      favorites,
+      sort,
+    ],
   );
 
   const filteredGins = useMemo(
     () =>
-      GIN_GARNISHES.filter(
-        (gin) =>
-          (activeCategory === "Todos" ||
-            activeCategory === "Garnish de Gins") &&
-          (!showFavorites || favorites.includes("gin:" + gin.id)) &&
-          matchesQuery(
-            searchQuery,
-            [
-              gin.gin,
-              "gin tonica",
-              gin.tonica,
-              gin.garnish,
-              gin.notas || "",
-            ].join(" "),
-          ),
-      ).sort((a, b) => (sort === "az" ? a.gin.localeCompare(b.gin, "pt") : 0)),
-    [searchQuery, activeCategory, showFavorites, favorites, sort],
+      gins
+        .filter(
+          (gin, index) =>
+            (activeCategory === "Todos" ||
+              activeCategory === "Garnish de Gins") &&
+            (!showFavorites || favorites.includes("gin:" + gin.id)) &&
+            matchesQuery(
+              searchQuery,
+              [
+                gin.gin,
+                "gin tonica tonic",
+                gin.tonica,
+                gin.garnish,
+                GIN_GARNISHES[index].garnish,
+                gin.notas || "",
+              ].join(" "),
+            ),
+        )
+        .sort((a, b) => (sort === "az" ? a.gin.localeCompare(b.gin, lang) : 0)),
+    [gins, lang, searchQuery, activeCategory, showFavorites, favorites, sort],
   );
 
   const counts = {
@@ -110,236 +160,239 @@ export default function App() {
   };
 
   const title = showFavorites
-    ? "Os teus favoritos"
+    ? t.titleFavorites
     : searchQuery
-      ? "Resultados"
+      ? t.titleResults
       : activeCategory === "Todos"
-        ? "Todas as bebidas"
+        ? t.titleAll
         : activeCategory === "Garnish de Gins"
-          ? "Gin & tónica"
-          : activeCategory;
+          ? t.ginTitle
+          : t.categories[activeCategory];
 
   const heroRecipe =
-    RECIPES.find((r) => r.id === "pornstar-martini") || RECIPES[0];
+    recipes.find((r) => r.id === "pornstar-martini") || recipes[0];
 
   return (
-    <div className="app">
-      <a className="skip-link" href="#bebidas">
-        Saltar para as bebidas
-      </a>
-      <Header
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        isDarkMode={isDarkMode}
-        toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-        showFavorites={showFavorites}
-        setShowFavorites={(show) => {
-          setShowFavorites(show);
-          setActiveCategory("Todos");
-        }}
-        favoritesCount={favorites.length}
-      />
-
-      <main className="page">
-        {isBrowsing && activeCategory === "Todos" && (
-          <section className="intro" aria-label="Manual de bar Cheers">
-            <div className="intro-copy">
-              <p className="kicker">Cheers Experiences · Equipa de bar</p>
-              <h1>
-                Cada medida, <em>cada detalhe.</em>
-              </h1>
-              <p className="intro-lead">
-                Receitas, medidas, copos e garnish da casa, prontos a consultar
-                em segundos durante o serviço.
-              </p>
-              <ul className="intro-stats">
-                <li>
-                  <b>{RECIPES.length}</b> receitas
-                </li>
-                <li>
-                  <b>{GIN_GARNISHES.length}</b> gins com garnish
-                </li>
-                <li>
-                  <b>{counts["Sem Álcool"]}</b> sem álcool
-                </li>
-              </ul>
-            </div>
-            <button
-              type="button"
-              className="feature"
-              onClick={() => setSelectedRecipe(heroRecipe)}
-              aria-label={"Abrir ficha: " + heroRecipe.nome}
-            >
-              <DrinkImage
-                name={heroRecipe.nome}
-                imageId={heroRecipe.id}
-                eager
-              />
-              <span className="feature-caption">
-                <span>
-                  <small>Assinatura da casa</small>
-                  <strong>{heroRecipe.nome}</strong>
-                </span>
-                <ArrowUpRight size={22} aria-hidden="true" />
-              </span>
-            </button>
-          </section>
-        )}
-
-        <section
-          id="bebidas"
-          className="collection"
-          aria-label="Bebidas e receitas"
-        >
-          <div className="collection-bar">
-            <CategoryFilters
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-              counts={counts}
-            />
-          </div>
-
-          <div className="collection-head">
-            <h2>
-              {title}
-              <span className="count" role="status" aria-live="polite">
-                {total} {total === 1 ? "resultado" : "resultados"}
-              </span>
-            </h2>
-            <div className="collection-controls">
-              <label className="select">
-                <span className="sr-only">Ordenar</span>
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as "menu" | "az")}
-                >
-                  <option value="menu">Ordem da casa</option>
-                  <option value="az">A–Z</option>
-                </select>
-              </label>
-              {activeCategory !== "Garnish de Gins" && (
-                <div
-                  className="segmented"
-                  role="group"
-                  aria-label="Apresentação"
-                >
-                  <button
-                    type="button"
-                    aria-label="Vista em cartões"
-                    aria-pressed={layout === "grid"}
-                    onClick={() => setLayout("grid")}
-                  >
-                    <LayoutGrid size={18} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Vista em lista rápida"
-                    aria-pressed={layout === "list"}
-                    onClick={() => setLayout("list")}
-                  >
-                    <List size={19} aria-hidden="true" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {!isBrowsing && (
-            <div className="active-filters">
-              {searchQuery && <span>“{searchQuery}”</span>}
-              {showFavorites && (
-                <span>
-                  <Star size={13} aria-hidden="true" /> Só favoritos
-                </span>
-              )}
-              <button type="button" onClick={reset}>
-                Limpar <X size={14} aria-hidden="true" />
-              </button>
-            </div>
-          )}
-
-          {total ? (
-            <>
-              {filteredRecipes.length > 0 && (
-                <div
-                  className={layout === "list" ? "recipe-list" : "recipe-grid"}
-                >
-                  {filteredRecipes.map((recipe) => (
-                    <RecipeCard
-                      key={recipe.id}
-                      recipe={recipe}
-                      variant={layout}
-                      isFavorite={favorites.includes(recipe.id)}
-                      toggleFavorite={toggleFavorite}
-                      onOpen={() => setSelectedRecipe(recipe)}
-                    />
-                  ))}
-                </div>
-              )}
-              {filteredGins.length > 0 && (
-                <section className="gin-section" aria-label="Gin & tónica">
-                  {filteredRecipes.length > 0 && (
-                    <div className="subsection-head">
-                      <h2>Gin & tónica</h2>
-                      <p>Tónica e garnish certos para cada gin.</p>
-                    </div>
-                  )}
-                  <GinGarnishTable
-                    data={filteredGins}
-                    favorites={favorites}
-                    toggleFavorite={toggleFavorite}
-                  />
-                </section>
-              )}
-            </>
-          ) : (
-            <div className="empty-state">
-              {showFavorites && !searchQuery ? (
-                <Star size={32} aria-hidden="true" />
-              ) : (
-                <SearchX size={34} aria-hidden="true" />
-              )}
-              <h3>
-                {showFavorites && !favorites.length
-                  ? "Ainda sem favoritos"
-                  : "Não encontrámos essa bebida"}
-              </h3>
-              <p>
-                {showFavorites && !favorites.length
-                  ? "Toca na estrela de uma bebida para a teres sempre à mão aqui."
-                  : "Experimenta outro nome, um ingrediente (ex.: maracujá) ou um garnish."}
-              </p>
-              <button type="button" className="primary-button" onClick={reset}>
-                Ver todas as bebidas
-              </button>
-            </div>
-          )}
-        </section>
-      </main>
-
-      <footer className="site-footer">
-        <span className="footer-brand">
-          cheers<span>.</span>
-        </span>
-        <p>O cuidado está em cada detalhe.</p>
-        <a
-          href="https://menu.cheersexperiences.com/cheers"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Consultar a carta <ArrowUpRight size={15} aria-hidden="true" />
+    <LangContext.Provider value={{ lang, t }}>
+      <div className="app">
+        <a className="skip-link" href="#bebidas">
+          {t.skip}
         </a>
-      </footer>
-
-      {selectedRecipe && (
-        <RecipeDetail
-          key={selectedRecipe.id}
-          recipe={selectedRecipe}
-          onClose={() => setSelectedRecipe(null)}
-          isFavorite={favorites.includes(selectedRecipe.id)}
-          toggleFavorite={toggleFavorite}
+        <Header
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isDarkMode={isDarkMode}
+          toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          showFavorites={showFavorites}
+          setShowFavorites={(show) => {
+            setShowFavorites(show);
+            setActiveCategory("Todos");
+          }}
+          favoritesCount={favorites.length}
+          setLang={setLang}
         />
-      )}
-    </div>
+
+        <main className="page">
+          {isBrowsing && activeCategory === "Todos" && (
+            <section className="intro" aria-label={t.introLabel}>
+              <div className="intro-copy">
+                <p className="kicker">{t.kicker}</p>
+                <h1>
+                  {t.heroA}
+                  <em>{t.heroB}</em>
+                </h1>
+                <p className="intro-lead">{t.heroLead}</p>
+                <ul className="intro-stats">
+                  <li>
+                    <b>{RECIPES.length}</b> {t.statRecipes}
+                  </li>
+                  <li>
+                    <b>{GIN_GARNISHES.length}</b> {t.statGins}
+                  </li>
+                  <li>
+                    <b>{counts["Sem Álcool"]}</b> {t.statNoAlcohol}
+                  </li>
+                </ul>
+              </div>
+              <button
+                type="button"
+                className="feature"
+                onClick={() => setSelectedRecipe(heroRecipe)}
+                aria-label={t.openRecipe(heroRecipe.nome)}
+              >
+                <DrinkImage
+                  name={heroRecipe.nome}
+                  imageId={heroRecipe.id}
+                  eager
+                />
+                <span className="feature-caption">
+                  <span>
+                    <small>{t.featureKicker}</small>
+                    <strong>{heroRecipe.nome}</strong>
+                  </span>
+                  <ArrowUpRight size={22} aria-hidden="true" />
+                </span>
+              </button>
+            </section>
+          )}
+
+          <section
+            id="bebidas"
+            className="collection"
+            aria-label={t.collectionLabel}
+          >
+            <div className="collection-bar">
+              <CategoryFilters
+                activeCategory={activeCategory}
+                setActiveCategory={setActiveCategory}
+                counts={counts}
+              />
+            </div>
+
+            <div className="collection-head">
+              <h2>
+                {title}
+                <span className="count" role="status" aria-live="polite">
+                  {t.results(total)}
+                </span>
+              </h2>
+              <div className="collection-controls">
+                <label className="select">
+                  <span className="sr-only">{t.sort}</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value as "menu" | "az")}
+                  >
+                    <option value="menu">{t.sortHouse}</option>
+                    <option value="az">{t.sortAz}</option>
+                  </select>
+                </label>
+                {activeCategory !== "Garnish de Gins" && (
+                  <div className="segmented" role="group" aria-label={t.view}>
+                    <button
+                      type="button"
+                      aria-label={t.viewGrid}
+                      aria-pressed={layout === "grid"}
+                      onClick={() => setLayout("grid")}
+                    >
+                      <LayoutGrid size={18} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t.viewList}
+                      aria-pressed={layout === "list"}
+                      onClick={() => setLayout("list")}
+                    >
+                      <List size={19} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {!isBrowsing && (
+              <div className="active-filters">
+                {searchQuery && <span>“{searchQuery}”</span>}
+                {showFavorites && (
+                  <span>
+                    <Star size={13} aria-hidden="true" /> {t.onlyFavorites}
+                  </span>
+                )}
+                <button type="button" onClick={reset}>
+                  {t.clear} <X size={14} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+
+            {total ? (
+              <>
+                {filteredRecipes.length > 0 && (
+                  <div
+                    className={
+                      layout === "list" ? "recipe-list" : "recipe-grid"
+                    }
+                  >
+                    {filteredRecipes.map((recipe) => (
+                      <RecipeCard
+                        key={recipe.id}
+                        recipe={recipe}
+                        variant={layout}
+                        isFavorite={favorites.includes(recipe.id)}
+                        toggleFavorite={toggleFavorite}
+                        onOpen={() => setSelectedRecipe(recipe)}
+                      />
+                    ))}
+                  </div>
+                )}
+                {filteredGins.length > 0 && (
+                  <section className="gin-section" aria-label={t.ginTitle}>
+                    {filteredRecipes.length > 0 && (
+                      <div className="subsection-head">
+                        <h2>{t.ginTitle}</h2>
+                        <p>{t.ginSubtitle}</p>
+                      </div>
+                    )}
+                    <GinGarnishTable
+                      data={filteredGins}
+                      favorites={favorites}
+                      toggleFavorite={toggleFavorite}
+                    />
+                  </section>
+                )}
+              </>
+            ) : (
+              <div className="empty-state">
+                {showFavorites && !searchQuery ? (
+                  <Star size={32} aria-hidden="true" />
+                ) : (
+                  <SearchX size={34} aria-hidden="true" />
+                )}
+                <h3>
+                  {showFavorites && !favorites.length
+                    ? t.emptyFavTitle
+                    : t.emptyTitle}
+                </h3>
+                <p>
+                  {showFavorites && !favorites.length
+                    ? t.emptyFavText
+                    : t.emptyText}
+                </p>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={reset}
+                >
+                  {t.emptyButton}
+                </button>
+              </div>
+            )}
+          </section>
+        </main>
+
+        <footer className="site-footer">
+          <span className="footer-brand">
+            cheers<span>.</span>
+          </span>
+          <p>{t.footer}</p>
+          <a
+            href="https://menu.cheersexperiences.com/cheers"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t.footerMenu} <ArrowUpRight size={15} aria-hidden="true" />
+          </a>
+        </footer>
+
+        {selectedRecipe && (
+          <RecipeDetail
+            key={selectedRecipe.id}
+            recipe={selectedRecipe}
+            onClose={() => setSelectedRecipe(null)}
+            isFavorite={favorites.includes(selectedRecipe.id)}
+            toggleFavorite={toggleFavorite}
+          />
+        )}
+      </div>
+    </LangContext.Provider>
   );
 }

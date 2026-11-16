@@ -315,6 +315,27 @@ svg {
   background: #0000001f;
   color: inherit;
 }
+.lang-switch {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+}
+.lang-switch button {
+  min-width: 38px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+.lang-switch button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
 .menu-link {
   display: inline-flex;
   align-items: center;
@@ -1684,6 +1705,15 @@ svg {
   .site-footer {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 400px) {
+  .brand-text small {
+    display: none;
+  }
+  .brand-mark {
+    display: none;
   }
 }
 

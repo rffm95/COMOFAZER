@@ -60,3 +60,10 @@ Objetivo: uma app que um barman consulta em segundos, com pouca luz e mãos ocup
 | Botões com menos de 44 px | Todos os alvos de toque com pelo menos 44 px |
 
 Validação: TypeScript e build de produção; capturas a 390, 820 e 1440 px nos dois temas; sem transbordo horizontal; foco inicial e Escape na ficha; pesquisa sem acentos. Dados das receitas e gins sem alterações.
+
+## Espanhol (16 de novembro de 2026)
+
+- Seletor PT/ES no topo; a escolha fica guardada. Na primeira visita, um browser em espanhol abre em espanhol.
+- Interface, receitas (nomes descritivos, copos, técnicas, ingredientes, passos, garnish, notas) e garnish dos gins traduzidos para espanhol de Espanha, em src/data/recipes.es.ts.
+- As quantidades vêm sempre da receita original; só as unidades e os textos mudam. q.b. aparece como c.s. (cantidad suficiente).
+- A pesquisa encontra a bebida pelo termo em português ou em espanhol (ex.: “piña” e “ananás”).

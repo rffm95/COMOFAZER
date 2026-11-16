@@ -1,6 +1,7 @@
 import { Info, Leaf, Star } from "lucide-react";
 import { GinGarnish } from "../types";
 import DrinkImage from "./DrinkImage";
+import { useT } from "../i18n";
 
 interface Props {
   data: GinGarnish[];
@@ -14,6 +15,7 @@ export default function GinGarnishTable({
   favorites,
   toggleFavorite,
 }: Props) {
+  const { t } = useT();
   const groups = data.reduce<{ tonica: string; items: GinGarnish[] }[]>(
     (acc, item) => {
       const group = acc.find((g) => g.tonica === item.tonica);
@@ -30,10 +32,10 @@ export default function GinGarnishTable({
         <section
           key={group.tonica}
           className="gin-group"
-          aria-label={`Tónica ${group.tonica}`}
+          aria-label={`${t.tonic} ${group.tonica}`}
         >
           <h3 className="gin-group-title">
-            <span>Tónica</span> {group.tonica}
+            <span>{t.tonic}</span> {group.tonica}
             <b>{group.items.length}</b>
           </h3>
           <ul className="gin-list">
@@ -51,14 +53,14 @@ export default function GinGarnishTable({
                     <h4>{item.gin}</h4>
                     <p className="gin-garnish">
                       <Leaf size={15} aria-hidden="true" />
-                      <span className="sr-only">Garnish: </span>
+                      <span className="sr-only">{t.garnish}: </span>
                       {item.garnish}
                     </p>
                     {item.notas && <p className="gin-note">{item.notas}</p>}
                   </div>
                   <span
                     className="tonic-badge"
-                    aria-label={`Tónica ${item.tonica}`}
+                    aria-label={`${t.tonic} ${item.tonica}`}
                   >
                     {item.tonica}
                   </span>
@@ -69,7 +71,9 @@ export default function GinGarnishTable({
                     }
                     onClick={() => toggleFavorite(favoriteId)}
                     aria-pressed={isFavorite}
-                    aria-label={`${isFavorite ? "Remover" : "Guardar"} ${item.gin} ${isFavorite ? "dos" : "nos"} favoritos`}
+                    aria-label={
+                      isFavorite ? t.unsave(item.gin) : t.save(item.gin)
+                    }
                   >
                     <Star
                       size={18}
@@ -86,8 +90,7 @@ export default function GinGarnishTable({
       <aside className="service-note">
         <Info size={18} aria-hidden="true" />
         <p>
-          <strong>Padrão da casa.</strong> Onde a receita original pedia
-          Fever-Tree, serve-se tónica 1724.
+          <strong>{t.housePolicyStrong}</strong> {t.housePolicy}
         </p>
       </aside>
     </div>
