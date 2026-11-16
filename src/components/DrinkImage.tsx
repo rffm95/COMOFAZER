@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Martini } from "lucide-react";
 import { getDrinkImage } from "../data/drinkImages";
+import { useT } from "../i18n";
 
 interface Props {
   name: string;
@@ -27,6 +28,7 @@ export default function DrinkImage({
   showMissingLabel = false,
   eager = false,
 }: Props) {
+  const { t } = useT();
   const image = getDrinkImage(imageId);
   const [failedSource, setFailedSource] = useState("");
   const available = image && image.src !== failedSource;
@@ -43,16 +45,14 @@ export default function DrinkImage({
             src={image.src}
             alt={
               name +
-              (image.kind === "illustration"
-                ? ", imagem ilustrativa da carta"
-                : ", fotografia da carta Cheers")
+              (image.kind === "illustration" ? t.imgIllustration : t.imgPhoto)
             }
             loading={eager ? "eager" : "lazy"}
             decoding="async"
             onError={() => setFailedSource(image.src)}
           />
           {image.kind === "illustration" && (
-            <span className="image-badge">Ilustração</span>
+            <span className="image-badge">{t.illustration}</span>
           )}
         </>
       ) : (
@@ -62,9 +62,7 @@ export default function DrinkImage({
             {initials(name) || "C"}
           </span>
           {showMissingLabel && (
-            <small>
-              {image ? "Imagem indisponível" : "Sem fotografia na carta"}
-            </small>
+            <small>{image ? t.imgUnavailable : t.noPhoto}</small>
           )}
         </div>
       )}

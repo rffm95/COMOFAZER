@@ -2,6 +2,7 @@ import { ChevronRight, GlassWater, Star, Wand2 } from "lucide-react";
 import { Receita } from "../types";
 import { measureText, shortName } from "../lib/format";
 import DrinkImage from "./DrinkImage";
+import { useT } from "../i18n";
 
 interface Props {
   recipe: Receita;
@@ -18,6 +19,7 @@ export default function RecipeCard({
   toggleFavorite,
   onOpen,
 }: Props) {
+  const { t } = useT();
   const preview = variant === "grid" ? recipe.ingredientes.slice(0, 3) : [];
   const hidden = recipe.ingredientes.length - preview.length;
 
@@ -27,7 +29,7 @@ export default function RecipeCard({
         type="button"
         className="recipe-open"
         onClick={onOpen}
-        aria-label={`Abrir ficha: ${recipe.nome}`}
+        aria-label={t.openRecipe(recipe.nome)}
       >
         <DrinkImage
           name={recipe.nome}
@@ -35,7 +37,7 @@ export default function RecipeCard({
           className="recipe-thumb"
         />
         <div className="recipe-body">
-          <p className="recipe-kicker">{recipe.categoria}</p>
+          <p className="recipe-kicker">{t.categories[recipe.categoria]}</p>
           <h3>{recipe.nome}</h3>
           <p className="recipe-meta">
             <span>
@@ -48,29 +50,27 @@ export default function RecipeCard({
             </span>
           </p>
           {variant === "grid" ? (
-            <ul className="spec-preview" aria-label="Principais ingredientes">
+            <ul className="spec-preview" aria-label={t.mainIngredients}>
               {preview.map((ingredient, index) => (
                 <li key={index}>
-                  <b>{measureText(ingredient)}</b>
+                  <b>{measureText(ingredient, t)}</b>
                   <span>{shortName(ingredient.nome)}</span>
                 </li>
               ))}
               {hidden > 0 && (
-                <li className="spec-more">
-                  + {hidden} {hidden === 1 ? "ingrediente" : "ingredientes"}
-                </li>
+                <li className="spec-more">{t.moreIngredients(hidden)}</li>
               )}
             </ul>
           ) : (
             <p className="spec-line">
               {recipe.ingredientes
-                .map((i) => `${measureText(i)} ${shortName(i.nome)}`)
+                .map((i) => `${measureText(i, t)} ${shortName(i.nome)}`)
                 .join(" · ")}
             </p>
           )}
           {variant === "grid" && (
             <span className="recipe-cta" aria-hidden="true">
-              Ver ficha <ChevronRight size={16} />
+              {t.seeRecipe} <ChevronRight size={16} />
             </span>
           )}
         </div>
@@ -82,7 +82,7 @@ export default function RecipeCard({
         type="button"
         className={"fav-button" + (isFavorite ? " is-active" : "")}
         onClick={() => toggleFavorite(recipe.id)}
-        aria-label={`${isFavorite ? "Remover" : "Guardar"} ${recipe.nome} ${isFavorite ? "dos" : "nos"} favoritos`}
+        aria-label={isFavorite ? t.unsave(recipe.nome) : t.save(recipe.nome)}
         aria-pressed={isFavorite}
       >
         <Star

@@ -1,4 +1,5 @@
 import { Categoria } from "../types";
+import { useT } from "../i18n";
 import { CupSoda, LayoutGrid, Leaf, Martini, Wine } from "lucide-react";
 
 interface Props {
@@ -8,11 +9,11 @@ interface Props {
 }
 
 const categories = [
-  { id: "Todos", label: "Tudo", icon: LayoutGrid },
-  { id: "Cocktails", label: "Cocktails", icon: Martini },
-  { id: "Garnish de Gins", label: "Gin & tónica", icon: Leaf },
-  { id: "Sem Álcool", label: "Sem álcool", icon: CupSoda },
-  { id: "Sangrias", label: "Sangrias", icon: Wine },
+  { id: "Todos", icon: LayoutGrid },
+  { id: "Cocktails", icon: Martini },
+  { id: "Garnish de Gins", icon: Leaf },
+  { id: "Sem Álcool", icon: CupSoda },
+  { id: "Sangrias", icon: Wine },
 ] as const;
 
 export default function CategoryFilters({
@@ -20,9 +21,10 @@ export default function CategoryFilters({
   setActiveCategory,
   counts,
 }: Props) {
+  const { t } = useT();
   return (
-    <nav className="chips" aria-label="Categorias de bebidas">
-      {categories.map(({ id, label, icon: Icon }) => (
+    <nav className="chips" aria-label={t.categoriesLabel}>
+      {categories.map(({ id, icon: Icon }) => (
         <button
           type="button"
           key={id}
@@ -31,7 +33,7 @@ export default function CategoryFilters({
           className={"chip" + (activeCategory === id ? " is-active" : "")}
         >
           <Icon size={17} aria-hidden="true" />
-          <span>{label}</span>
+          <span>{t.categories[id]}</span>
           <b>{counts[id] || 0}</b>
         </button>
       ))}

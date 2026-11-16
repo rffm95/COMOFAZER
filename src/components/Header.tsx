@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useT, Lang } from "../i18n";
 import { ArrowUpRight, Moon, Search, Star, Sun, X } from "lucide-react";
 
 interface HeaderProps {
@@ -9,9 +10,11 @@ interface HeaderProps {
   showFavorites: boolean;
   setShowFavorites: (show: boolean) => void;
   favoritesCount: number;
+  setLang: (lang: Lang) => void;
 }
 
 export default function Header(props: HeaderProps) {
+  const { t, lang } = useT();
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -37,7 +40,7 @@ export default function Header(props: HeaderProps) {
         <a
           className="brand"
           href={import.meta.env.BASE_URL}
-          aria-label="Cheers, manual de bar: início"
+          aria-label={t.brandHome}
         >
           <span className="brand-mark" aria-hidden="true">
             c.
@@ -46,7 +49,7 @@ export default function Header(props: HeaderProps) {
             <strong>
               cheers<span>.</span>
             </strong>
-            <small>Manual de bar</small>
+            <small>{t.brandSub}</small>
           </span>
         </a>
 
@@ -54,12 +57,12 @@ export default function Header(props: HeaderProps) {
           <Search size={20} aria-hidden="true" />
           <input
             ref={input}
-            aria-label="Pesquisar bebida, ingrediente, copo ou garnish"
+            aria-label={t.searchLabel}
             type="search"
             enterKeyHint="search"
             autoComplete="off"
             spellCheck={false}
-            placeholder="Bebida, ingrediente ou garnish"
+            placeholder={t.searchPlaceholder}
             value={props.searchQuery}
             onChange={(e) => props.setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -71,7 +74,7 @@ export default function Header(props: HeaderProps) {
             <button
               type="button"
               className="search-clear"
-              aria-label="Limpar pesquisa"
+              aria-label={t.clearSearch}
               onClick={() => {
                 props.setSearchQuery("");
                 input.current?.focus();
@@ -85,12 +88,26 @@ export default function Header(props: HeaderProps) {
         </div>
 
         <div className="topbar-actions">
+          <div className="lang-switch" role="group" aria-label={t.language}>
+            {(["pt", "es"] as const).map((code) => (
+              <button
+                key={code}
+                type="button"
+                lang={code}
+                aria-pressed={lang === code}
+                aria-label={code === "pt" ? "Português" : "Español"}
+                onClick={() => props.setLang(code)}
+              >
+                {code.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             className={
               "pill-button" + (props.showFavorites ? " is-active" : "")
             }
-            aria-label={`Favoritos: ${props.favoritesCount} guardados`}
+            aria-label={t.favoritesAria(props.favoritesCount)}
             aria-pressed={props.showFavorites}
             onClick={() => props.setShowFavorites(!props.showFavorites)}
           >
@@ -99,7 +116,7 @@ export default function Header(props: HeaderProps) {
               fill={props.showFavorites ? "currentColor" : "none"}
               aria-hidden="true"
             />
-            <span className="pill-label">Favoritos</span>
+            <span className="pill-label">{t.favorites}</span>
             {props.favoritesCount > 0 && (
               <b className="pill-count">{props.favoritesCount}</b>
             )}
@@ -107,11 +124,7 @@ export default function Header(props: HeaderProps) {
           <button
             type="button"
             className="pill-button"
-            aria-label={
-              props.isDarkMode
-                ? "Mudar para modo dia (fundo claro)"
-                : "Mudar para modo bar (fundo escuro)"
-            }
+            aria-label={props.isDarkMode ? t.toDayAria : t.toBarAria}
             onClick={props.toggleDarkMode}
           >
             {props.isDarkMode ? (
@@ -120,7 +133,7 @@ export default function Header(props: HeaderProps) {
               <Moon size={18} aria-hidden="true" />
             )}
             <span className="pill-label">
-              {props.isDarkMode ? "Modo dia" : "Modo bar"}
+              {props.isDarkMode ? t.toDay : t.toBar}
             </span>
           </button>
           <a
@@ -129,7 +142,7 @@ export default function Header(props: HeaderProps) {
             target="_blank"
             rel="noreferrer"
           >
-            Carta <ArrowUpRight size={15} aria-hidden="true" />
+            {t.menu} <ArrowUpRight size={15} aria-hidden="true" />
           </a>
         </div>
       </div>

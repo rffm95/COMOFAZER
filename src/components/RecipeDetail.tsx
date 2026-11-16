@@ -12,6 +12,7 @@ import {
 import { Receita } from "../types";
 import { formatMeasure } from "../lib/format";
 import DrinkImage from "./DrinkImage";
+import { useT } from "../i18n";
 
 interface RecipeDetailProps {
   recipe: Receita;
@@ -65,6 +66,7 @@ export default function RecipeDetail({
   isFavorite,
   toggleFavorite,
 }: RecipeDetailProps) {
+  const { t } = useT();
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -155,9 +157,7 @@ export default function RecipeDetail({
             className={"glass-button" + (isFavorite ? " is-active" : "")}
             onClick={() => toggleFavorite(recipe.id)}
             aria-pressed={isFavorite}
-            aria-label={
-              isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"
-            }
+            aria-label={isFavorite ? t.removeFav : t.saveFav}
           >
             <Star
               size={20}
@@ -170,7 +170,7 @@ export default function RecipeDetail({
             type="button"
             className="glass-button"
             onClick={onClose}
-            aria-label="Fechar ficha"
+            aria-label={t.close}
           >
             <X size={22} aria-hidden="true" />
           </button>
@@ -199,7 +199,7 @@ export default function RecipeDetail({
 
           <div className="sheet-content">
             <header className="sheet-header">
-              <p className="kicker">{recipe.categoria}</p>
+              <p className="kicker">{t.categories[recipe.categoria]}</p>
               <h2 id={titleId}>{recipe.nome}</h2>
               {recipe.tags.length > 0 && (
                 <p className="sheet-tags">{recipe.tags.join(" · ")}</p>
@@ -209,19 +209,19 @@ export default function RecipeDetail({
             <dl className="service-facts">
               <div>
                 <dt>
-                  <GlassWater size={16} aria-hidden="true" /> Copo
+                  <GlassWater size={16} aria-hidden="true" /> {t.glass}
                 </dt>
                 <dd>{recipe.copo}</dd>
               </div>
               <div>
                 <dt>
-                  <Wand2 size={16} aria-hidden="true" /> Técnica
+                  <Wand2 size={16} aria-hidden="true" /> {t.technique}
                 </dt>
                 <dd>{recipe.tecnica}</dd>
               </div>
               <div className="is-wide">
                 <dt>
-                  <Leaf size={16} aria-hidden="true" /> Garnish
+                  <Leaf size={16} aria-hidden="true" /> {t.garnish}
                 </dt>
                 <dd>{recipe.garnish}</dd>
               </div>
@@ -232,11 +232,11 @@ export default function RecipeDetail({
               aria-labelledby={`${titleId}-ing`}
             >
               <h3 className="section-title" id={`${titleId}-ing`}>
-                Ingredientes <span>{recipe.ingredientes.length}</span>
+                {t.ingredients} <span>{recipe.ingredientes.length}</span>
               </h3>
               <ul className="spec-list">
                 {recipe.ingredientes.map((ingredient, index) => {
-                  const measure = formatMeasure(ingredient);
+                  const measure = formatMeasure(ingredient, t);
                   return (
                     <li key={index}>
                       <span className="spec-measure">
@@ -262,7 +262,7 @@ export default function RecipeDetail({
             >
               <div className="section-head">
                 <h3 className="section-title" id={`${titleId}-prep`}>
-                  Preparação <span>{total} passos</span>
+                  {t.preparation} <span>{t.steps(total)}</span>
                 </h3>
                 <button
                   type="button"
@@ -270,7 +270,7 @@ export default function RecipeDetail({
                   onClick={() => setCompleted([])}
                   disabled={done === 0}
                 >
-                  <RotateCcw size={15} aria-hidden="true" /> Recomeçar
+                  <RotateCcw size={15} aria-hidden="true" /> {t.restart}
                 </button>
               </div>
               <div
@@ -279,14 +279,12 @@ export default function RecipeDetail({
                 aria-valuemin={0}
                 aria-valuemax={total}
                 aria-valuenow={done}
-                aria-label="Passos concluídos"
+                aria-label={t.stepsDone}
               >
                 <span style={{ width: `${(done / total) * 100}%` }} />
               </div>
               <p className="progress-label" aria-live="polite">
-                {done === total
-                  ? "Pronto a servir"
-                  : `${done} de ${total} concluídos · toca num passo para o marcar`}
+                {done === total ? t.ready : t.progress(done, total)}
               </p>
               <ol className="step-list">
                 {recipe.passos.map((step, index) => {
@@ -298,7 +296,7 @@ export default function RecipeDetail({
                           type="checkbox"
                           checked={isDone}
                           onChange={() => toggleStep(index)}
-                          aria-label={`Passo ${index + 1}: ${step}`}
+                          aria-label={t.stepAria(index + 1, step)}
                         />
                         <span className="step-marker" aria-hidden="true">
                           {isDone ? (
@@ -318,7 +316,7 @@ export default function RecipeDetail({
             {recipe.observacoes && (
               <aside className="service-note is-warning">
                 <p>
-                  <strong>Nota de serviço.</strong> {recipe.observacoes}
+                  <strong>{t.serviceNote}</strong> {recipe.observacoes}
                 </p>
               </aside>
             )}
@@ -326,8 +324,7 @@ export default function RecipeDetail({
             <footer className="sheet-footer">
               {awake && (
                 <p className="awake-note">
-                  <SunMedium size={15} aria-hidden="true" /> O ecrã fica ligado
-                  enquanto a ficha estiver aberta.
+                  <SunMedium size={15} aria-hidden="true" /> {t.awake}
                 </p>
               )}
               <button
@@ -335,7 +332,7 @@ export default function RecipeDetail({
                 className="primary-button"
                 onClick={onClose}
               >
-                Voltar às bebidas
+                {t.back}
               </button>
             </footer>
           </div>
