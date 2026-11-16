@@ -1,29 +1,40 @@
 import { useState } from "react";
 import { Martini } from "lucide-react";
 import { getDrinkImage } from "../data/drinkImages";
-import { GIN_GARNISHES } from "../data/ginGarnish";
-import { RECIPES } from "../data/recipes";
 
 interface Props {
   name: string;
-  recipeId?: string;
+  imageId: string;
   className?: string;
+  /** Mostra a legenda "Sem fotografia na carta" no marcador. */
+  showMissingLabel?: boolean;
+  eager?: boolean;
 }
-export default function DrinkImage({ name, recipeId, className = "" }: Props) {
-  const id =
-    recipeId ||
-    GIN_GARNISHES.find((g) => g.gin === name)?.id ||
-    RECIPES.find((r) => r.nome === name)?.id ||
-    "";
-  const image = getDrinkImage(id);
+
+const initials = (name: string) =>
+  name
+    .replace(/\(.*?\)/g, "")
+    .split(/\s+/)
+    .filter((word) => /^[\p{L}]/u.test(word) && word.length > 2)
+    .slice(0, 2)
+    .map((word) => word[0].toLocaleUpperCase("pt-PT"))
+    .join("");
+
+export default function DrinkImage({
+  name,
+  imageId,
+  className = "",
+  showMissingLabel = false,
+  eager = false,
+}: Props) {
+  const image = getDrinkImage(imageId);
   const [failedSource, setFailedSource] = useState("");
   const available = image && image.src !== failedSource;
+
   return (
     <div
       className={
-        "drink-image " +
-        (available ? "" : "drink-image-placeholder ") +
-        className
+        "drink-image" + (available ? "" : " is-empty") + " " + className
       }
     >
       {available ? (
@@ -33,26 +44,28 @@ export default function DrinkImage({ name, recipeId, className = "" }: Props) {
             alt={
               name +
               (image.kind === "illustration"
-                ? " — imagem ilustrativa da carta"
-                : " — imagem da carta Cheers")
+                ? ", imagem ilustrativa da carta"
+                : ", fotografia da carta Cheers")
             }
-            loading="lazy"
+            loading={eager ? "eager" : "lazy"}
             decoding="async"
             onError={() => setFailedSource(image.src)}
           />
           {image.kind === "illustration" && (
-            <span className="image-disclaimer">Imagem ilustrativa</span>
+            <span className="image-badge">Ilustração</span>
           )}
         </>
       ) : (
-        <div className="image-placeholder-content">
-          <span className="placeholder-frame">
-            <Martini size={43} strokeWidth={0.85} aria-hidden="true" />
+        <div className="drink-placeholder" role="img" aria-label={name}>
+          <Martini size={28} strokeWidth={1} aria-hidden="true" />
+          <span className="drink-initials" aria-hidden="true">
+            {initials(name) || "C"}
           </span>
-          <span className="placeholder-monogram">CHEERS</span>
-          <small>
-            {image ? "Imagem indisponível" : "Sem fotografia na carta"}
-          </small>
+          {showMissingLabel && (
+            <small>
+              {image ? "Imagem indisponível" : "Sem fotografia na carta"}
+            </small>
+          )}
         </div>
       )}
     </div>

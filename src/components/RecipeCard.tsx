@@ -1,75 +1,95 @@
+import { ChevronRight, GlassWater, Star, Wand2 } from "lucide-react";
 import { Receita } from "../types";
-import {
-  Star,
-  ArrowUpRight,
-  GlassWater,
-  SlidersHorizontal,
-} from "lucide-react";
+import { measureText, shortName } from "../lib/format";
 import DrinkImage from "./DrinkImage";
+
 interface Props {
   recipe: Receita;
+  variant: "grid" | "list";
   isFavorite: boolean;
-  toggleFavorite: (e: React.MouseEvent, id: string) => void;
-  onClick: () => void;
+  toggleFavorite: (id: string) => void;
+  onOpen: () => void;
 }
+
 export default function RecipeCard({
   recipe,
+  variant,
   isFavorite,
   toggleFavorite,
-  onClick,
+  onOpen,
 }: Props) {
+  const preview = variant === "grid" ? recipe.ingredientes.slice(0, 3) : [];
+  const hidden = recipe.ingredientes.length - preview.length;
+
   return (
-    <article className="recipe-card">
+    <article className={"recipe-card is-" + variant}>
       <button
+        type="button"
         className="recipe-open"
-        onClick={onClick}
-        aria-label={"Ver receita de " + recipe.nome}
+        onClick={onOpen}
+        aria-label={`Abrir ficha: ${recipe.nome}`}
       >
-        <div className="recipe-visual">
-          <DrinkImage name={recipe.nome} recipeId={recipe.id} />
-          <span className="recipe-category">{recipe.categoria}</span>
-          <span className="image-open" aria-hidden="true">
-            <ArrowUpRight size={19} />
-          </span>
-        </div>
-        <div className="recipe-copy">
+        <DrinkImage
+          name={recipe.nome}
+          imageId={recipe.id}
+          className="recipe-thumb"
+        />
+        <div className="recipe-body">
+          <p className="recipe-kicker">{recipe.categoria}</p>
           <h3>{recipe.nome}</h3>
-          <p className="recipe-flavours">
-            {recipe.tags.slice(0, 3).join(" · ")}
-          </p>
-          <div className="recipe-specs">
+          <p className="recipe-meta">
             <span>
-              <GlassWater size={14} />
+              <GlassWater size={15} aria-hidden="true" />
               {recipe.copo}
             </span>
             <span>
-              <SlidersHorizontal size={14} />
+              <Wand2 size={15} aria-hidden="true" />
               {recipe.tecnica}
             </span>
-          </div>
-          <div className="recipe-bottom">
-            <span>
-              {recipe.ingredientes.length} ingredientes <i>·</i>{" "}
-              {recipe.passos.length} passos
+          </p>
+          {variant === "grid" ? (
+            <ul className="spec-preview" aria-label="Principais ingredientes">
+              {preview.map((ingredient, index) => (
+                <li key={index}>
+                  <b>{measureText(ingredient)}</b>
+                  <span>{shortName(ingredient.nome)}</span>
+                </li>
+              ))}
+              {hidden > 0 && (
+                <li className="spec-more">
+                  + {hidden} {hidden === 1 ? "ingrediente" : "ingredientes"}
+                </li>
+              )}
+            </ul>
+          ) : (
+            <p className="spec-line">
+              {recipe.ingredientes
+                .map((i) => `${measureText(i)} ${shortName(i.nome)}`)
+                .join(" · ")}
+            </p>
+          )}
+          {variant === "grid" && (
+            <span className="recipe-cta" aria-hidden="true">
+              Ver ficha <ChevronRight size={16} />
             </span>
-            <b>
-              Ver receita <ArrowUpRight size={14} />
-            </b>
-          </div>
+          )}
         </div>
+        {variant === "list" && (
+          <ChevronRight className="row-chevron" size={20} aria-hidden="true" />
+        )}
       </button>
       <button
-        className={"card-favorite " + (isFavorite ? "active" : "")}
-        onClick={(e) => toggleFavorite(e, recipe.id)}
-        aria-label={
-          (isFavorite ? "Remover " : "Guardar ") +
-          recipe.nome +
-          (isFavorite ? " dos" : " nos") +
-          " favoritos"
-        }
+        type="button"
+        className={"fav-button" + (isFavorite ? " is-active" : "")}
+        onClick={() => toggleFavorite(recipe.id)}
+        aria-label={`${isFavorite ? "Remover" : "Guardar"} ${recipe.nome} ${isFavorite ? "dos" : "nos"} favoritos`}
         aria-pressed={isFavorite}
       >
-        <Star size={18} fill={isFavorite ? "currentColor" : "none"} />
+        <Star
+          size={18}
+          fill={isFavorite ? "currentColor" : "none"}
+          aria-hidden="true"
+        />
       </button>
     </article>
   );

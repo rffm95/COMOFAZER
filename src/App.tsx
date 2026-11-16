@@ -1,47 +1,50 @@
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, LayoutGrid, List, SearchX, Star, X } from "lucide-react";
 import { RECIPES } from "./data/recipes";
 import { GIN_GARNISHES } from "./data/ginGarnish";
+import { getDrinkImage } from "./data/drinkImages";
 import { Categoria, Receita } from "./types";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { matchesQuery } from "./lib/search";
 import Header from "./components/Header";
 import CategoryFilters from "./components/CategoryFilters";
 import RecipeCard from "./components/RecipeCard";
 import RecipeDetail from "./components/RecipeDetail";
 import GinGarnishTable from "./components/GinGarnishTable";
 import DrinkImage from "./components/DrinkImage";
-import {
-  ArrowUpRight,
-  SearchX,
-  Star,
-  BookOpen,
-  LayoutGrid,
-  List,
-  X,
-} from "lucide-react";
-import { matchesQuery } from "./lib/search";
-import { getDrinkImage } from "./data/drinkImages";
+
+const prefersCompact = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(max-width: 640px)").matches;
 
 export default function App() {
-  const [isDarkMode, setIsDarkMode] = useLocalStorage("dark-mode", false);
+  const [isDarkMode, setIsDarkMode] = useLocalStorage("dark-mode", true);
   const [favorites, setFavorites] = useLocalStorage<string[]>("favorites", []);
+  const [layout, setLayout] = useLocalStorage<"grid" | "list">(
+    "cheers-layout",
+    prefersCompact() ? "list" : "grid",
+  );
   const [activeCategory, setActiveCategory] = useState<Categoria | "Todos">(
     "Todos",
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Receita | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
-  const [layout, setLayout] = useLocalStorage<"grid" | "list">(
-    "cheers-layout",
-    "grid",
-  );
-  const [sort, setSort] = useState("menu");
+  const [sort, setSort] = useState<"menu" | "az">("menu");
+
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDarkMode);
+    const theme = isDarkMode ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", isDarkMode ? "#0f0e0c" : "#f6f1e7");
   }, [isDarkMode]);
+
   const toggleFavorite = (id: string) =>
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
+
   const filteredRecipes = useMemo(
     () =>
       RECIPES.filter(
@@ -68,6 +71,7 @@ export default function App() {
       ),
     [searchQuery, activeCategory, showFavorites, favorites, sort],
   );
+
   const filteredGins = useMemo(
     () =>
       GIN_GARNISHES.filter(
@@ -77,13 +81,18 @@ export default function App() {
           (!showFavorites || favorites.includes("gin:" + gin.id)) &&
           matchesQuery(
             searchQuery,
-            [gin.gin, "gin", gin.tonica, gin.garnish, gin.notas || ""].join(
-              " ",
-            ),
+            [
+              gin.gin,
+              "gin tonica",
+              gin.tonica,
+              gin.garnish,
+              gin.notas || "",
+            ].join(" "),
           ),
       ).sort((a, b) => (sort === "az" ? a.gin.localeCompare(b.gin, "pt") : 0)),
     [searchQuery, activeCategory, showFavorites, favorites, sort],
   );
+
   const counts = {
     Todos: RECIPES.length + GIN_GARNISHES.length,
     Cocktails: RECIPES.filter((r) => r.categoria === "Cocktails").length,
@@ -92,22 +101,30 @@ export default function App() {
     "Garnish de Gins": GIN_GARNISHES.length,
   };
   const total = filteredRecipes.length + filteredGins.length;
+  const isBrowsing = !searchQuery && !showFavorites;
+
   const reset = () => {
     setSearchQuery("");
     setShowFavorites(false);
     setActiveCategory("Todos");
   };
-  const categoryTitle =
-    activeCategory === "Todos"
-      ? "A coleção de bebidas"
-      : activeCategory === "Garnish de Gins"
-        ? "Gins & garnish"
-        : activeCategory;
+
+  const title = showFavorites
+    ? "Os teus favoritos"
+    : searchQuery
+      ? "Resultados"
+      : activeCategory === "Todos"
+        ? "Todas as bebidas"
+        : activeCategory === "Garnish de Gins"
+          ? "Gin & tónica"
+          : activeCategory;
+
   const heroRecipe =
-    RECIPES.find((r) => r.id === "pornstar-martini") || RECIPES[3];
+    RECIPES.find((r) => r.id === "pornstar-martini") || RECIPES[0];
+
   return (
-    <div className="app-shell">
-      <a className="skip-link" href="#collection">
+    <div className="app">
+      <a className="skip-link" href="#bebidas">
         Saltar para as bebidas
       </a>
       <Header
@@ -122,197 +139,198 @@ export default function App() {
         }}
         favoritesCount={favorites.length}
       />
-      <main className="main-content">
-        {!searchQuery && !showFavorites && (
-          <section
-            className="editorial-hero"
-            aria-label="O manual de bar Cheers"
-          >
-            <div className="hero-copy">
-              <p className="eyebrow">
-                <span /> CHEERS EXPERIENCES{" "}
-                <span className="eyebrow-divider">/</span> EQUIPA DE BAR
-              </p>
+
+      <main className="page">
+        {isBrowsing && activeCategory === "Todos" && (
+          <section className="intro" aria-label="Manual de bar Cheers">
+            <div className="intro-copy">
+              <p className="kicker">Cheers Experiences · Equipa de bar</p>
               <h1>
-                A arte de servir.
-                <br />
-                <em>O detalhe de cada bebida.</em>
+                Cada medida, <em>cada detalhe.</em>
               </h1>
-              <p className="hero-description">
-                Da primeira medida ao último toque. Receitas, técnicas e
-                apresentação, sempre à mão.
+              <p className="intro-lead">
+                Receitas, medidas, copos e garnish da casa, prontos a consultar
+                em segundos durante o serviço.
               </p>
-              <div className="hero-meta">
-                <span>
-                  <BookOpen size={16} /> {RECIPES.length} receitas de bar
-                </span>
-                <span>{GIN_GARNISHES.length} gins & garnish</span>
-                <span className="hero-meta-last">Um serviço de excelência</span>
-              </div>
+              <ul className="intro-stats">
+                <li>
+                  <b>{RECIPES.length}</b> receitas
+                </li>
+                <li>
+                  <b>{GIN_GARNISHES.length}</b> gins com garnish
+                </li>
+                <li>
+                  <b>{counts["Sem Álcool"]}</b> sem álcool
+                </li>
+              </ul>
             </div>
             <button
-              className="hero-feature"
+              type="button"
+              className="feature"
               onClick={() => setSelectedRecipe(heroRecipe)}
-              aria-label={"Ver receita de " + heroRecipe.nome}
+              aria-label={"Abrir ficha: " + heroRecipe.nome}
             >
-              <DrinkImage name={heroRecipe.nome} recipeId={heroRecipe.id} />
-              <div className="hero-feature-caption">
+              <DrinkImage
+                name={heroRecipe.nome}
+                imageId={heroRecipe.id}
+                eager
+              />
+              <span className="feature-caption">
                 <span>
-                  <small>DA NOSSA CARTA</small>
+                  <small>Assinatura da casa</small>
                   <strong>{heroRecipe.nome}</strong>
                 </span>
-                <ArrowUpRight size={23} />
-              </div>
+                <ArrowUpRight size={22} aria-hidden="true" />
+              </span>
             </button>
           </section>
         )}
+
         <section
-          id="collection"
+          id="bebidas"
           className="collection"
           aria-label="Bebidas e receitas"
         >
-          <CategoryFilters
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-            counts={counts}
-          />
-          <div className="collection-heading">
-            <div>
-              <p className="eyebrow">
-                {showFavorites ? "A TUA SELEÇÃO" : "CONSULTA RÁPIDA"}
-              </p>
-              <h2>
-                {showFavorites
-                  ? "Os teus favoritos"
-                  : searchQuery
-                    ? "Resultados da pesquisa"
-                    : categoryTitle}
-                <span className="result-count" role="status" aria-live="polite">
-                  {total} {total === 1 ? "bebida" : "bebidas"}
-                </span>
-              </h2>
-            </div>
+          <div className="collection-bar">
+            <CategoryFilters
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+              counts={counts}
+            />
+          </div>
+
+          <div className="collection-head">
+            <h2>
+              {title}
+              <span className="count" role="status" aria-live="polite">
+                {total} {total === 1 ? "resultado" : "resultados"}
+              </span>
+            </h2>
             <div className="collection-controls">
-              <label className="sort-control">
-                <span className="sr-only">Ordenar bebidas</span>
-                <select value={sort} onChange={(e) => setSort(e.target.value)}>
+              <label className="select">
+                <span className="sr-only">Ordenar</span>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as "menu" | "az")}
+                >
                   <option value="menu">Ordem da casa</option>
-                  <option value="az">Nome: A–Z</option>
+                  <option value="az">A–Z</option>
                 </select>
               </label>
-              <div
-                className="view-switch"
-                role="group"
-                aria-label="Apresentação das bebidas"
-              >
-                <button
-                  aria-label="Vista em grelha"
-                  aria-pressed={layout === "grid"}
-                  onClick={() => setLayout("grid")}
+              {activeCategory !== "Garnish de Gins" && (
+                <div
+                  className="segmented"
+                  role="group"
+                  aria-label="Apresentação"
                 >
-                  <LayoutGrid size={17} />
-                </button>
-                <button
-                  aria-label="Vista em lista"
-                  aria-pressed={layout === "list"}
-                  onClick={() => setLayout("list")}
-                >
-                  <List size={19} />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    aria-label="Vista em cartões"
+                    aria-pressed={layout === "grid"}
+                    onClick={() => setLayout("grid")}
+                  >
+                    <LayoutGrid size={18} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Vista em lista rápida"
+                    aria-pressed={layout === "list"}
+                    onClick={() => setLayout("list")}
+                  >
+                    <List size={19} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          {(searchQuery || showFavorites) && (
+
+          {!isBrowsing && (
             <div className="active-filters">
-              {searchQuery && <span>Pesquisa: “{searchQuery}”</span>}
+              {searchQuery && <span>“{searchQuery}”</span>}
               {showFavorites && (
                 <span>
-                  <Star size={13} /> Só favoritos
+                  <Star size={13} aria-hidden="true" /> Só favoritos
                 </span>
               )}
-              <button onClick={reset}>
-                Limpar filtros <X size={13} />
+              <button type="button" onClick={reset}>
+                Limpar <X size={14} aria-hidden="true" />
               </button>
             </div>
           )}
+
           {total ? (
-            <div
-              className={
-                "results-layout " + (layout === "list" ? "is-list" : "")
-              }
-            >
+            <>
               {filteredRecipes.length > 0 && (
-                <div className="recipe-grid">
+                <div
+                  className={layout === "list" ? "recipe-list" : "recipe-grid"}
+                >
                   {filteredRecipes.map((recipe) => (
                     <RecipeCard
                       key={recipe.id}
                       recipe={recipe}
+                      variant={layout}
                       isFavorite={favorites.includes(recipe.id)}
-                      toggleFavorite={(event, id) => {
-                        event.stopPropagation();
-                        toggleFavorite(id);
-                      }}
-                      onClick={() => setSelectedRecipe(recipe)}
+                      toggleFavorite={toggleFavorite}
+                      onOpen={() => setSelectedRecipe(recipe)}
                     />
                   ))}
                 </div>
               )}
               {filteredGins.length > 0 && (
-                <section className="gin-section" aria-label="Gins e garnish">
+                <section className="gin-section" aria-label="Gin & tónica">
                   {filteredRecipes.length > 0 && (
-                    <div className="subsection-heading">
-                      <h2>Gins & garnish</h2>
-                      <span>A combinação certa, em cada serviço.</span>
+                    <div className="subsection-head">
+                      <h2>Gin & tónica</h2>
+                      <p>Tónica e garnish certos para cada gin.</p>
                     </div>
                   )}
                   <GinGarnishTable
                     data={filteredGins}
-                    searchQuery=""
                     favorites={favorites}
                     toggleFavorite={toggleFavorite}
-                    showSummary={false}
                   />
                 </section>
               )}
-            </div>
+            </>
           ) : (
             <div className="empty-state">
               {showFavorites && !searchQuery ? (
-                <Star size={32} />
+                <Star size={32} aria-hidden="true" />
               ) : (
-                <SearchX size={36} />
+                <SearchX size={34} aria-hidden="true" />
               )}
               <h3>
                 {showFavorites && !favorites.length
-                  ? "As tuas bebidas, sempre à mão."
-                  : "Não encontrámos essa bebida."}
+                  ? "Ainda sem favoritos"
+                  : "Não encontrámos essa bebida"}
               </h3>
               <p>
                 {showFavorites && !favorites.length
-                  ? "Toca na estrela de uma bebida para a guardar aqui."
-                  : "Experimenta outro nome, ingrediente ou garnish, ou remove os filtros."}
+                  ? "Toca na estrela de uma bebida para a teres sempre à mão aqui."
+                  : "Experimenta outro nome, um ingrediente (ex.: maracujá) ou um garnish."}
               </p>
-              <button className="primary-button" onClick={reset}>
-                Explorar todas as bebidas <ArrowUpRight size={16} />
+              <button type="button" className="primary-button" onClick={reset}>
+                Ver todas as bebidas
               </button>
             </div>
           )}
         </section>
       </main>
+
       <footer className="site-footer">
-        <span className="footer-brand">cheers.</span>
-        <p>
-          O cuidado está em cada detalhe.
-          <small>MANUAL DE BAR · CHEERS EXPERIENCES</small>
-        </p>
+        <span className="footer-brand">
+          cheers<span>.</span>
+        </span>
+        <p>O cuidado está em cada detalhe.</p>
         <a
           href="https://menu.cheersexperiences.com/cheers"
           target="_blank"
           rel="noreferrer"
         >
-          Consultar a carta <ArrowUpRight size={15} />
+          Consultar a carta <ArrowUpRight size={15} aria-hidden="true" />
         </a>
       </footer>
+
       {selectedRecipe && (
         <RecipeDetail
           key={selectedRecipe.id}

@@ -1,32 +1,34 @@
 import { Categoria } from "../types";
-import { Martini, CupSoda, Wine, Leaf, LayoutGrid } from "lucide-react";
+import { CupSoda, LayoutGrid, Leaf, Martini, Wine } from "lucide-react";
+
 interface Props {
   activeCategory: Categoria | "Todos";
   setActiveCategory: (category: Categoria | "Todos") => void;
   counts: Record<string, number>;
 }
+
 const categories = [
-  { id: "Todos", label: "Todas as bebidas", icon: LayoutGrid },
+  { id: "Todos", label: "Tudo", icon: LayoutGrid },
   { id: "Cocktails", label: "Cocktails", icon: Martini },
+  { id: "Garnish de Gins", label: "Gin & tónica", icon: Leaf },
   { id: "Sem Álcool", label: "Sem álcool", icon: CupSoda },
   { id: "Sangrias", label: "Sangrias", icon: Wine },
-  { id: "Garnish de Gins", label: "Gins & garnish", icon: Leaf },
 ] as const;
+
 export default function CategoryFilters({
   activeCategory,
   setActiveCategory,
   counts,
 }: Props) {
   return (
-    <nav className="category-filters" aria-label="Categorias de bebidas">
+    <nav className="chips" aria-label="Categorias de bebidas">
       {categories.map(({ id, label, icon: Icon }) => (
         <button
+          type="button"
           key={id}
           aria-pressed={activeCategory === id}
           onClick={() => setActiveCategory(id)}
-          className={
-            "category-filter " + (activeCategory === id ? "active" : "")
-          }
+          className={"chip" + (activeCategory === id ? " is-active" : "")}
         >
           <Icon size={17} aria-hidden="true" />
           <span>{label}</span>

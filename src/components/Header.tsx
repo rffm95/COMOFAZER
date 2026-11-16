@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Search, Moon, Sun, Star, X, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Moon, Search, Star, Sun, X } from "lucide-react";
 
 interface HeaderProps {
   searchQuery: string;
@@ -10,14 +10,16 @@ interface HeaderProps {
   setShowFavorites: (show: boolean) => void;
   favoritesCount: number;
 }
+
 export default function Header(props: HeaderProps) {
   const input = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (
         event.key === "/" &&
-        !document.querySelector('[aria-modal=\"true\"]') &&
+        !document.querySelector('[aria-modal="true"]') &&
         !["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) &&
         !target.isContentEditable
       ) {
@@ -28,36 +30,46 @@ export default function Header(props: HeaderProps) {
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
+
   return (
-    <header className="site-header">
-      <div className="header-inner">
+    <header className="topbar">
+      <div className="topbar-inner">
         <a
-          className="wordmark"
+          className="brand"
           href={import.meta.env.BASE_URL}
-          aria-label="Cheers — início"
+          aria-label="Cheers, manual de bar: início"
         >
-          <span className="brand-seal" aria-hidden="true">
+          <span className="brand-mark" aria-hidden="true">
             c.
           </span>
-          <span>
+          <span className="brand-text">
             <strong>
               cheers<span>.</span>
             </strong>
-            <small>THE BAR MANUAL</small>
+            <small>Manual de bar</small>
           </span>
         </a>
-        <div className="header-search" role="search">
-          <Search size={19} aria-hidden="true" />
+
+        <div className="search" role="search">
+          <Search size={20} aria-hidden="true" />
           <input
             ref={input}
-            aria-label="Pesquisar bebida, ingrediente ou garnish"
+            aria-label="Pesquisar bebida, ingrediente, copo ou garnish"
             type="search"
-            placeholder="Encontra uma bebida, ingrediente ou garnish…"
+            enterKeyHint="search"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Bebida, ingrediente ou garnish"
             value={props.searchQuery}
             onChange={(e) => props.setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") props.setSearchQuery("");
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
           />
           {props.searchQuery ? (
             <button
+              type="button"
               className="search-clear"
               aria-label="Limpar pesquisa"
               onClick={() => {
@@ -65,38 +77,51 @@ export default function Header(props: HeaderProps) {
                 input.current?.focus();
               }}
             >
-              <X size={17} />
+              <X size={18} aria-hidden="true" />
             </button>
           ) : (
             <kbd aria-hidden="true">/</kbd>
           )}
         </div>
-        <div className="header-actions">
+
+        <div className="topbar-actions">
           <button
+            type="button"
             className={
-              "favorites-toggle " + (props.showFavorites ? "active" : "")
+              "pill-button" + (props.showFavorites ? " is-active" : "")
             }
-            aria-label={
-              "Favoritos: " + props.favoritesCount + " bebidas guardadas"
-            }
+            aria-label={`Favoritos: ${props.favoritesCount} guardados`}
             aria-pressed={props.showFavorites}
             onClick={() => props.setShowFavorites(!props.showFavorites)}
           >
             <Star
-              size={17}
+              size={18}
               fill={props.showFavorites ? "currentColor" : "none"}
+              aria-hidden="true"
             />
-            <span>Favoritos</span>
-            <b>{props.favoritesCount}</b>
+            <span className="pill-label">Favoritos</span>
+            {props.favoritesCount > 0 && (
+              <b className="pill-count">{props.favoritesCount}</b>
+            )}
           </button>
           <button
-            className="icon-button theme-toggle"
+            type="button"
+            className="pill-button"
             aria-label={
-              props.isDarkMode ? "Ativar tema claro" : "Ativar tema escuro"
+              props.isDarkMode
+                ? "Mudar para modo dia (fundo claro)"
+                : "Mudar para modo bar (fundo escuro)"
             }
             onClick={props.toggleDarkMode}
           >
-            {props.isDarkMode ? <Sun size={19} /> : <Moon size={19} />}
+            {props.isDarkMode ? (
+              <Sun size={18} aria-hidden="true" />
+            ) : (
+              <Moon size={18} aria-hidden="true" />
+            )}
+            <span className="pill-label">
+              {props.isDarkMode ? "Modo dia" : "Modo bar"}
+            </span>
           </button>
           <a
             className="menu-link"
@@ -104,7 +129,7 @@ export default function Header(props: HeaderProps) {
             target="_blank"
             rel="noreferrer"
           >
-            Ver carta <ArrowUpRight size={15} />
+            Carta <ArrowUpRight size={15} aria-hidden="true" />
           </a>
         </div>
       </div>

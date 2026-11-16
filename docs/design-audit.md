@@ -42,3 +42,21 @@ A carta mostra Gin de Morango num pack, sem imagem individual. Basil Smash não 
 ## Continuação recomendada
 
 Adicionar fotografias próprias das 13 variantes em falta para completar a cobertura visual. A associação pode ser feita em src/data/drinkImages.ts, preservando os IDs das bebidas.
+
+## Segunda iteração: serviço premium (16 de novembro de 2026)
+
+Objetivo: uma app que um barman consulta em segundos, com pouca luz e mãos ocupadas, e que tenha o nível de um bar de hotel de 5 estrelas.
+
+| Problema observado | Alteração |
+| --- | --- |
+| Tema claro por defeito encandeia em sala com pouca luz | Modo bar (escuro, preto quente com latão) por defeito, sem clarão ao abrir; modo dia continua disponível |
+| No telemóvel, cartões em duas colunas cortavam copo e técnica; página com mais de 10 000 px | Lista rápida por defeito no telemóvel, com fotografia, copo e medidas de todos os ingredientes numa linha |
+| Cartões não mostravam medidas | Cartões mostram as três primeiras medidas (ex.: 5 cl Gin Greenall's) |
+| Gins em cartões altos com foto, 17 ecrãs de deslocação | Guia de gin & tónica compacto, agrupado por tónica, uma linha por gin com garnish |
+| Ficha com foto pequena e copo/técnica/garnish separados | Ficha em ecrã inteiro no telemóvel; copo, técnica e garnish juntos no topo; medidas em destaque à esquerda, como numa spec de bar |
+| Passos com alvos pequenos | Passos com 64 px de altura, barra de progresso, “Pronto a servir” |
+| O ecrã apagava-se durante a preparação | A ficha mantém o ecrã ligado (Wake Lock) quando o browser o permite |
+| Texto de apoio com 8 a 10 px | Mínimo de 12 px em etiquetas e 14 a 18 px em conteúdo; pesquisa com 16 px para evitar zoom no iPhone |
+| Botões com menos de 44 px | Todos os alvos de toque com pelo menos 44 px |
+
+Validação: TypeScript e build de produção; capturas a 390, 820 e 1440 px nos dois temas; sem transbordo horizontal; foco inicial e Escape na ficha; pesquisa sem acentos. Dados das receitas e gins sem alterações.

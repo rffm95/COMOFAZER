@@ -1,109 +1,93 @@
-import { Info, Leaf, Search, Star } from "lucide-react";
+import { Info, Leaf, Star } from "lucide-react";
 import { GinGarnish } from "../types";
 import DrinkImage from "./DrinkImage";
-import "./GinGarnishTable.css";
 
-interface GinGarnishTableProps {
+interface Props {
   data: GinGarnish[];
-  searchQuery: string;
-  favorites?: string[];
-  toggleFavorite?: (id: string) => void;
-  showSummary?: boolean;
+  favorites: string[];
+  toggleFavorite: (id: string) => void;
 }
 
-const normalize = (text: string) =>
-  text
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-PT")
-    .trim();
-
-export function filterGins(data: GinGarnish[], searchQuery: string) {
-  const terms = normalize(searchQuery).split(/\s+/).filter(Boolean);
-  return data.filter((item) => {
-    const searchable = normalize(
-      `${item.gin} ${item.tonica} ${item.garnish} ${item.notas || ""}`,
-    );
-    return terms.every((term) => searchable.includes(term));
-  });
-}
-
+/** Guia rápido de gin & tónica: uma linha por gin, agrupado por tónica. */
 export default function GinGarnishTable({
   data,
-  searchQuery,
-  favorites = [],
+  favorites,
   toggleFavorite,
-  showSummary = true,
-}: GinGarnishTableProps) {
-  const filtered = filterGins(data, searchQuery);
+}: Props) {
+  const groups = data.reduce<{ tonica: string; items: GinGarnish[] }[]>(
+    (acc, item) => {
+      const group = acc.find((g) => g.tonica === item.tonica);
+      if (group) group.items.push(item);
+      else acc.push({ tonica: item.tonica, items: [item] });
+      return acc;
+    },
+    [],
+  );
+
   return (
     <div className="gin-guide">
-      {showSummary && (
-        <p className="gin-results" aria-live="polite">
-          {filtered.length}{" "}
-          {filtered.length === 1 ? "gin disponível" : "gins disponíveis"}{" "}
-          <span>· Tónica e garnish de serviço</span>
-        </p>
-      )}
-      {filtered.length ? (
-        <div className="gin-card-grid">
-          {filtered.map((item) => {
-            const favoriteId = `gin:${item.id}`;
-            const isFavorite = favorites.includes(favoriteId);
-            return (
-              <article className="gin-service-card" key={item.id}>
-                <div className="gin-card-photo">
-                  <DrinkImage name={item.gin} className="gin-card-image" />
-                  {toggleFavorite && (
-                    <button
-                      type="button"
-                      className={`gin-save-button${isFavorite ? " is-saved" : ""}`}
-                      onClick={() => toggleFavorite(favoriteId)}
-                      aria-pressed={isFavorite}
-                      aria-label={`${isFavorite ? "Remover" : "Guardar"} ${item.gin} ${isFavorite ? "dos" : "nos"} favoritos`}
-                    >
-                      <Star
-                        size={18}
-                        fill={isFavorite ? "currentColor" : "none"}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  )}
-                </div>
-                <div className="gin-card-content">
-                  <span className="gin-card-eyebrow">Gin & tónica</span>
-                  <h3>{item.gin}</h3>
-                  <dl>
-                    <div>
-                      <dt>Tónica</dt>
-                      <dd>{item.tonica}</dd>
-                    </div>
-                  </dl>
-                  <div className="gin-garnish-line">
-                    <Leaf size={16} aria-hidden="true" />
-                    <p>
-                      <span>Garnish</span>
+      {groups.map((group) => (
+        <section
+          key={group.tonica}
+          className="gin-group"
+          aria-label={`Tónica ${group.tonica}`}
+        >
+          <h3 className="gin-group-title">
+            <span>Tónica</span> {group.tonica}
+            <b>{group.items.length}</b>
+          </h3>
+          <ul className="gin-list">
+            {group.items.map((item) => {
+              const favoriteId = `gin:${item.id}`;
+              const isFavorite = favorites.includes(favoriteId);
+              return (
+                <li className="gin-row" key={item.id}>
+                  <DrinkImage
+                    name={item.gin}
+                    imageId={item.id}
+                    className="gin-thumb"
+                  />
+                  <div className="gin-info">
+                    <h4>{item.gin}</h4>
+                    <p className="gin-garnish">
+                      <Leaf size={15} aria-hidden="true" />
+                      <span className="sr-only">Garnish: </span>
                       {item.garnish}
                     </p>
+                    {item.notas && <p className="gin-note">{item.notas}</p>}
                   </div>
-                  {item.notas && <p className="gin-card-note">{item.notas}</p>}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="gin-empty">
-          <Search size={26} aria-hidden="true" />
-          <h3>Nenhum gin encontrado</h3>
-          <p>Tenta outro nome, uma tónica ou um garnish.</p>
-        </div>
-      )}
-      <aside className="gin-service-policy">
+                  <span
+                    className="tonic-badge"
+                    aria-label={`Tónica ${item.tonica}`}
+                  >
+                    {item.tonica}
+                  </span>
+                  <button
+                    type="button"
+                    className={
+                      "fav-button is-inline" + (isFavorite ? " is-active" : "")
+                    }
+                    onClick={() => toggleFavorite(favoriteId)}
+                    aria-pressed={isFavorite}
+                    aria-label={`${isFavorite ? "Remover" : "Guardar"} ${item.gin} ${isFavorite ? "dos" : "nos"} favoritos`}
+                  >
+                    <Star
+                      size={18}
+                      fill={isFavorite ? "currentColor" : "none"}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+      <aside className="service-note">
         <Info size={18} aria-hidden="true" />
         <p>
-          <strong>Padrão de serviço Cheers.</strong> Nas receitas que indicavam
-          Fever Tree, servir tónica 1724.
+          <strong>Padrão da casa.</strong> Onde a receita original pedia
+          Fever-Tree, serve-se tónica 1724.
         </p>
       </aside>
     </div>
