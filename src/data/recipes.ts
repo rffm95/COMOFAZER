@@ -1,4 +1,4 @@
-import { Receita } from './types';
+import { Receita } from '../types';
 
 export const RECIPES: Receita[] = [
   {

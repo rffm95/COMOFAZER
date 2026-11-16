@@ -1,6 +1,8 @@
-import { Receita } from '../types';
-import { X, Star, CupSoda, Info, ListNumbers, MessageCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { useEffect, useId, useRef, useState } from "react";
+import { Check, Leaf, RotateCcw, Star, Wine, X } from "lucide-react";
+import { Receita } from "../types";
+import DrinkImage from "./DrinkImage";
+import "./RecipeDetail.css";
 
 interface RecipeDetailProps {
   recipe: Receita;
@@ -9,155 +11,244 @@ interface RecipeDetailProps {
   toggleFavorite: (id: string) => void;
 }
 
-export default function RecipeDetail({ recipe, onClose, isFavorite, toggleFavorite }: RecipeDetailProps) {
+export default function RecipeDetail({
+  recipe,
+  onClose,
+  isFavorite,
+  toggleFavorite,
+}: RecipeDetailProps) {
+  const titleId = useId();
+  const panel = useRef<HTMLDivElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const close = useRef(onClose);
+  const [completed, setCompleted] = useState<number[]>([]);
+  close.current = onClose;
+
+  useEffect(() => {
+    setCompleted([]);
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButton.current?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close.current();
+      }
+      if (event.key !== "Tab" || !panel.current) return;
+      const focusable = Array.from(
+        panel.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]',
+        ),
+      ).filter((element) => element.getClientRects().length > 0);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first) {
+        event.preventDefault();
+        panel.current.focus();
+      } else if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          !panel.current.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          !panel.current.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKey);
+      if (previousFocus?.isConnected) previousFocus.focus();
+      else
+        document
+          .querySelector<HTMLInputElement>(".header-search input")
+          ?.focus();
+    };
+  }, [recipe.id]);
+
+  const toggleStep = (index: number) =>
+    setCompleted((current) =>
+      current.includes(index)
+        ? current.filter((step) => step !== index)
+        : [...current, index],
+    );
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/90 backdrop-blur-md"
-      onClick={onClose}
+    <div
+      className="recipe-overlay"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="w-full max-w-3xl bg-slate-900 rounded-t-3xl md:rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] md:max-h-[90vh] border border-slate-800"
-        onClick={(e) => e.stopPropagation()}
+      <div
+        ref={panel}
+        className="recipe-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
       >
-        {/* Header */}
-        <div className="relative p-8 md:p-10 border-b border-slate-800 bg-slate-900">
-          <div className="absolute top-6 right-6 flex gap-3">
+        <div className="recipe-dialog-toolbar">
+          <span>
+            Cheers <span className="recipe-toolbar-divider">/</span> Ficha de
+            bar
+          </span>
+          <div className="recipe-dialog-actions">
             <button
+              type="button"
+              className={`recipe-icon-button${isFavorite ? " is-saved" : ""}`}
               onClick={() => toggleFavorite(recipe.id)}
-              className={`p-2.5 rounded-xl bg-slate-800 border border-slate-700 transition-colors ${
-                isFavorite ? 'text-amber-500 bg-amber-500/10 border-amber-500/50' : 'text-slate-500 hover:text-white'
-              }`}
+              aria-pressed={isFavorite}
+              aria-label={
+                isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"
+              }
             >
-              <Star size={20} fill={isFavorite ? "currentColor" : "none"} />
+              <Star
+                size={19}
+                fill={isFavorite ? "currentColor" : "none"}
+                aria-hidden="true"
+              />
             </button>
             <button
+              ref={closeButton}
+              type="button"
+              className="recipe-icon-button"
               onClick={onClose}
-              className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-500 hover:text-white transition-colors"
+              aria-label="Fechar ficha"
             >
-              <X size={20} />
+              <X size={21} aria-hidden="true" />
             </button>
           </div>
-          
-          <div className="max-w-[85%]">
-            <span className="text-amber-500 text-[10px] font-black tracking-[0.3em] uppercase mb-2 block">
-              {recipe.categoria}
-            </span>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white italic uppercase leading-none mb-6">
-              {recipe.nome}
-            </h2>
-            
-            <div className="flex flex-wrap gap-3">
-              <div className="bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
-                <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Copo</p>
-                <p className="text-sm font-bold text-slate-200">{recipe.copo}</p>
-              </div>
-              <div className="bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
-                <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Técnica</p>
-                <p className="text-sm font-bold text-slate-200">{recipe.tecnica}</p>
-              </div>
-              <div className="bg-amber-500/10 border border-amber-500/30 px-4 py-2 rounded-lg">
-                <p className="text-[9px] text-amber-500 uppercase font-black tracking-widest">Garnish</p>
-                <p className="text-sm font-bold text-amber-500">{recipe.garnish}</p>
-              </div>
-            </div>
-          </div>
         </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8 md:p-10 space-y-12 no-scrollbar">
-          {/* Ingredientes */}
-          <section>
-            <h3 className="text-lg font-black text-white uppercase italic tracking-widest flex items-center gap-3 mb-6">
-              <span className="w-1.5 h-6 bg-amber-500 rounded-full"></span>
-              Ingredientes
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {recipe.ingredientes.map((ing, idx) => (
-                <div key={idx} className="p-4 bg-slate-800/50 border border-slate-800 rounded-xl flex items-center justify-between group hover:border-slate-700 transition-colors">
-                  <span className="text-slate-300 group-hover:text-white transition-colors font-medium">
-                    {ing.nome}
-                  </span>
-                  <div className="flex items-baseline gap-1.5 ml-4">
-                    <span className="text-lg font-black text-amber-500">{ing.quantidade}</span>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">{ing.unidade}</span>
-                  </div>
-                </div>
-              ))}
+        <div className="recipe-dialog-scroll">
+          <header className="recipe-detail-header">
+            <div className="recipe-detail-photo">
+              <DrinkImage
+                name={recipe.nome}
+                recipeId={recipe.id}
+                className="recipe-detail-image"
+              />
             </div>
-          </section>
-
-          {/* Preparação */}
-          <section>
-            <h3 className="text-lg font-black text-white uppercase italic tracking-widest flex items-center gap-3 mb-6">
-              <span className="w-1.5 h-6 bg-amber-500 rounded-full"></span>
-              Preparação
-            </h3>
-            <div className="space-y-4">
-              {recipe.passos.map((passo, idx) => (
-                <div key={idx} className="flex gap-5 group">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-amber-500 flex items-center justify-center font-black text-lg group-hover:border-amber-500/50 transition-colors">
-                    {idx + 1}
-                  </div>
-                  <p className="text-slate-400 group-hover:text-slate-200 transition-colors leading-relaxed pt-1.5 text-base">
-                    {passo}
-                  </p>
+            <div className="recipe-detail-intro">
+              <p className="recipe-eyebrow">{recipe.categoria}</p>
+              <h2 id={titleId}>{recipe.nome}</h2>
+              <p className="recipe-detail-summary">
+                {recipe.ingredientes.length} ingredientes{" "}
+                <span aria-hidden="true">·</span> {recipe.passos.length} passos
+                de preparação
+              </p>
+              <dl className="recipe-service-facts">
+                <div>
+                  <dt>
+                    <Wine size={16} aria-hidden="true" /> Copo
+                  </dt>
+                  <dd>{recipe.copo}</dd>
                 </div>
-              ))}
+                <div>
+                  <dt>Técnica</dt>
+                  <dd>{recipe.tecnica}</dd>
+                </div>
+              </dl>
             </div>
-          </section>
-
-          {/* Notas Adicionais */}
-          {recipe.observacoes && (
-            <section className="bg-slate-950 p-6 rounded-2xl border border-slate-800 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-slate-700"></div>
-              <div className="flex items-center gap-2 mb-3 text-slate-500">
-                <MessageCircle size={18} />
-                <h4 className="font-black text-xs uppercase tracking-[0.2em]">Observações de Serviço</h4>
+          </header>
+          <div className="recipe-detail-body">
+            <section
+              className="recipe-ingredients"
+              aria-labelledby={`${titleId}-ingredients`}
+            >
+              <div className="recipe-section-heading">
+                <span className="recipe-section-number">01</span>
+                <h3 id={`${titleId}-ingredients`}>Ingredientes</h3>
               </div>
-              <p className="text-slate-400 text-sm leading-relaxed italic">{recipe.observacoes}</p>
+              <ul className="recipe-ingredient-list">
+                {recipe.ingredientes.map((ingredient, index) => (
+                  <li key={index}>
+                    <span>{ingredient.nome}</span>
+                    <strong>
+                      {ingredient.quantidade}{" "}
+                      <small>{ingredient.unidade}</small>
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+              <div className="recipe-garnish">
+                <h4>
+                  <Leaf size={17} aria-hidden="true" /> Garnish & acabamento
+                </h4>
+                <p>{recipe.garnish}</p>
+              </div>
             </section>
+            <section
+              className="recipe-preparation"
+              aria-labelledby={`${titleId}-preparation`}
+            >
+              <div className="recipe-section-heading">
+                <span className="recipe-section-number">02</span>
+                <h3 id={`${titleId}-preparation`}>Preparação</h3>
+              </div>
+              <div className="recipe-step-status">
+                <span aria-live="polite">
+                  {completed.length === recipe.passos.length
+                    ? "Preparação concluída"
+                    : `${completed.length} de ${recipe.passos.length} passos concluídos`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCompleted([])}
+                  disabled={completed.length === 0}
+                >
+                  <RotateCcw size={14} aria-hidden="true" /> Reiniciar
+                </button>
+              </div>
+              <ol className="recipe-step-list">
+                {recipe.passos.map((step, index) => (
+                  <li
+                    key={index}
+                    className={completed.includes(index) ? "is-complete" : ""}
+                  >
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={completed.includes(index)}
+                        onChange={() => toggleStep(index)}
+                        aria-label={`Passo ${index + 1}: ${step}`}
+                      />
+                      <span className="recipe-step-marker" aria-hidden="true">
+                        {completed.includes(index) ? (
+                          <Check size={17} />
+                        ) : (
+                          String(index + 1).padStart(2, "0")
+                        )}
+                      </span>
+                      <span className="recipe-step-text">{step}</span>
+                    </label>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </div>
+          {recipe.observacoes && (
+            <aside className="recipe-service-note">
+              <h3>Nota de serviço</h3>
+              <p>{recipe.observacoes}</p>
+            </aside>
           )}
+          <footer className="recipe-detail-footer">
+            <span>O cuidado está em cada detalhe.</span>
+            <button type="button" onClick={onClose}>
+              Voltar às bebidas
+            </button>
+          </footer>
         </div>
-
-        {/* Footer Action */}
-        <div className="p-8 bg-slate-900 border-t border-slate-800">
-          <button
-            onClick={onClose}
-            className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-amber-500/20"
-          >
-            Fechar Manual
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function Leaf({ size, className, ...props }: any) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className} 
-      {...props}
-    >
-      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8a13 13 0 0 1-13 13L11 20z" />
-      <path d="M9 13c.5-2 1.5-3.5 3-4" />
-      <path d="M11 20c-1 1-3 1-4 1" />
-    </svg>
+      </div>
+    </div>
   );
 }

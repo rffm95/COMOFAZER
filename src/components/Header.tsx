@@ -1,5 +1,5 @@
-import { Search, Moon, Sun, Star } from 'lucide-react';
-import { motion } from 'motion/react';
+import { useEffect, useRef } from "react";
+import { Search, Moon, Sun, Star, X, ArrowUpRight } from "lucide-react";
 
 interface HeaderProps {
   searchQuery: string;
@@ -10,82 +10,102 @@ interface HeaderProps {
   setShowFavorites: (show: boolean) => void;
   favoritesCount: number;
 }
-
-export default function Header({
-  searchQuery,
-  setSearchQuery,
-  isDarkMode,
-  toggleDarkMode,
-  showFavorites,
-  setShowFavorites,
-  favoritesCount
-}: HeaderProps) {
+export default function Header(props: HeaderProps) {
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        event.key === "/" &&
+        !document.querySelector('[aria-modal=\"true\"]') &&
+        !["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) &&
+        !target.isContentEditable
+      ) {
+        event.preventDefault();
+        input.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-900 border-b border-slate-800 px-4 py-3 md:px-6">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4">
-        <div className="flex items-center justify-between w-full md:w-auto gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center font-bold text-slate-950 text-xl shadow-lg shadow-amber-500/20">
-              C
-            </div>
-            <h1 className="text-xl font-black tracking-tighter text-white uppercase italic">
-              Cheers <span className="text-amber-500 not-italic">Guide</span>
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-2 md:hidden">
-            <button
-              onClick={() => setShowFavorites(!showFavorites)}
-              className={`p-2 rounded-lg relative transition-colors ${
-                showFavorites 
-                  ? 'bg-amber-500 text-slate-950' 
-                  : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <Star size={20} fill={showFavorites ? "currentColor" : "none"} />
-            </button>
-          </div>
-        </div>
-
-        <div className="relative flex-1 w-full max-w-xl mx-auto">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500">
-            <Search size={18} />
-          </div>
+    <header className="site-header">
+      <div className="header-inner">
+        <a
+          className="wordmark"
+          href={import.meta.env.BASE_URL}
+          aria-label="Cheers — início"
+        >
+          <span className="brand-seal" aria-hidden="true">
+            c.
+          </span>
+          <span>
+            <strong>
+              cheers<span>.</span>
+            </strong>
+            <small>THE BAR MANUAL</small>
+          </span>
+        </a>
+        <div className="header-search" role="search">
+          <Search size={19} aria-hidden="true" />
           <input
-            type="text"
-            placeholder="Pesquisar bebida ou ingrediente..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-11 pr-4 bg-slate-800 border border-slate-700 rounded-full text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all text-sm"
+            ref={input}
+            aria-label="Pesquisar bebida, ingrediente ou garnish"
+            type="search"
+            placeholder="Encontra uma bebida, ingrediente ou garnish…"
+            value={props.searchQuery}
+            onChange={(e) => props.setSearchQuery(e.target.value)}
           />
+          {props.searchQuery ? (
+            <button
+              className="search-clear"
+              aria-label="Limpar pesquisa"
+              onClick={() => {
+                props.setSearchQuery("");
+                input.current?.focus();
+              }}
+            >
+              <X size={17} />
+            </button>
+          ) : (
+            <kbd aria-hidden="true">/</kbd>
+          )}
         </div>
-
-        <div className="hidden md:flex items-center gap-3">
+        <div className="header-actions">
           <button
-            onClick={() => setShowFavorites(!showFavorites)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${
-              showFavorites 
-                ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
+            className={
+              "favorites-toggle " + (props.showFavorites ? "active" : "")
+            }
+            aria-label={
+              "Favoritos: " + props.favoritesCount + " bebidas guardadas"
+            }
+            aria-pressed={props.showFavorites}
+            onClick={() => props.setShowFavorites(!props.showFavorites)}
           >
-            <Star size={16} fill={showFavorites ? "currentColor" : "none"} />
+            <Star
+              size={17}
+              fill={props.showFavorites ? "currentColor" : "none"}
+            />
             <span>Favoritos</span>
-            {favoritesCount > 0 && (
-              <span className={`ml-1 w-5 h-5 rounded-md flex items-center justify-center text-[10px] ${
-                showFavorites ? 'bg-slate-950 text-white' : 'bg-slate-700 text-white'
-              }`}>
-                {favoritesCount}
-              </span>
-            )}
+            <b>{props.favoritesCount}</b>
           </button>
-          <div className="h-8 w-px bg-slate-800 mx-2"></div>
           <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="icon-button theme-toggle"
+            aria-label={
+              props.isDarkMode ? "Ativar tema claro" : "Ativar tema escuro"
+            }
+            onClick={props.toggleDarkMode}
           >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            {props.isDarkMode ? <Sun size={19} /> : <Moon size={19} />}
           </button>
+          <a
+            className="menu-link"
+            href="https://menu.cheersexperiences.com/cheers"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ver carta <ArrowUpRight size={15} />
+          </a>
         </div>
       </div>
     </header>
