@@ -1,14 +1,62 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Check, Leaf, RotateCcw, Star, Wine, X } from "lucide-react";
+import {
+  Check,
+  GlassWater,
+  Leaf,
+  RotateCcw,
+  Star,
+  SunMedium,
+  Wand2,
+  X,
+} from "lucide-react";
 import { Receita } from "../types";
+import { formatMeasure } from "../lib/format";
 import DrinkImage from "./DrinkImage";
-import "./RecipeDetail.css";
 
 interface RecipeDetailProps {
   recipe: Receita;
   onClose: () => void;
   isFavorite: boolean;
   toggleFavorite: (id: string) => void;
+}
+
+type WakeLockSentinelLike = { release: () => Promise<void> };
+
+/** Mantém o ecrã ligado enquanto a ficha está aberta (quando o browser deixa). */
+function useScreenAwake() {
+  const [awake, setAwake] = useState(false);
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinelLike> };
+    };
+    if (!nav.wakeLock) return;
+    let sentinel: WakeLockSentinelLike | null = null;
+    let cancelled = false;
+    const request = async () => {
+      try {
+        const lock = await nav.wakeLock!.request("screen");
+        if (cancelled) {
+          lock.release().catch(() => {});
+          return;
+        }
+        sentinel = lock;
+        setAwake(true);
+      } catch {
+        setAwake(false);
+      }
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") request();
+    };
+    request();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      sentinel?.release().catch(() => {});
+    };
+  }, []);
+  return awake;
 }
 
 export default function RecipeDetail({
@@ -22,6 +70,8 @@ export default function RecipeDetail({
   const closeButton = useRef<HTMLButtonElement>(null);
   const close = useRef(onClose);
   const [completed, setCompleted] = useState<number[]>([]);
+  const [condensed, setCondensed] = useState(false);
+  const awake = useScreenAwake();
   close.current = onClose;
 
   useEffect(() => {
@@ -29,7 +79,7 @@ export default function RecipeDetail({
     const previousFocus = document.activeElement as HTMLElement | null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    closeButton.current?.focus();
+    closeButton.current?.focus({ preventScroll: true });
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -38,7 +88,7 @@ export default function RecipeDetail({
       if (event.key !== "Tab" || !panel.current) return;
       const focusable = Array.from(
         panel.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]',
+          'button:not([disabled]), a[href], input:not([disabled]), [tabindex="0"]',
         ),
       ).filter((element) => element.getClientRects().length > 0);
       const first = focusable[0];
@@ -66,11 +116,8 @@ export default function RecipeDetail({
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKey);
-      if (previousFocus?.isConnected) previousFocus.focus();
-      else
-        document
-          .querySelector<HTMLInputElement>(".header-search input")
-          ?.focus();
+      if (previousFocus?.isConnected)
+        previousFocus.focus({ preventScroll: true });
     };
   }, [recipe.id]);
 
@@ -81,172 +128,217 @@ export default function RecipeDetail({
         : [...current, index],
     );
 
+  const total = recipe.passos.length;
+  const done = completed.length;
+
   return (
     <div
-      className="recipe-overlay"
+      className="sheet-overlay"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div
         ref={panel}
-        className="recipe-dialog"
+        className="sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
       >
-        <div className="recipe-dialog-toolbar">
-          <span>
-            Cheers <span className="recipe-toolbar-divider">/</span> Ficha de
-            bar
-          </span>
-          <div className="recipe-dialog-actions">
-            <button
-              type="button"
-              className={`recipe-icon-button${isFavorite ? " is-saved" : ""}`}
-              onClick={() => toggleFavorite(recipe.id)}
-              aria-pressed={isFavorite}
-              aria-label={
-                isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"
-              }
-            >
-              <Star
-                size={19}
-                fill={isFavorite ? "currentColor" : "none"}
-                aria-hidden="true"
-              />
-            </button>
-            <button
-              ref={closeButton}
-              type="button"
-              className="recipe-icon-button"
-              onClick={onClose}
-              aria-label="Fechar ficha"
-            >
-              <X size={21} aria-hidden="true" />
-            </button>
-          </div>
+        <div className={"sheet-toolbar" + (condensed ? " is-solid" : "")}>
+          <p className="sheet-toolbar-title" aria-hidden="true">
+            {recipe.nome}
+          </p>
+          <button
+            type="button"
+            className={"glass-button" + (isFavorite ? " is-active" : "")}
+            onClick={() => toggleFavorite(recipe.id)}
+            aria-pressed={isFavorite}
+            aria-label={
+              isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"
+            }
+          >
+            <Star
+              size={20}
+              fill={isFavorite ? "currentColor" : "none"}
+              aria-hidden="true"
+            />
+          </button>
+          <button
+            ref={closeButton}
+            type="button"
+            className="glass-button"
+            onClick={onClose}
+            aria-label="Fechar ficha"
+          >
+            <X size={22} aria-hidden="true" />
+          </button>
         </div>
-        <div className="recipe-dialog-scroll">
-          <header className="recipe-detail-header">
-            <div className="recipe-detail-photo">
-              <DrinkImage
-                name={recipe.nome}
-                recipeId={recipe.id}
-                className="recipe-detail-image"
-              />
-            </div>
-            <div className="recipe-detail-intro">
-              <p className="recipe-eyebrow">{recipe.categoria}</p>
+
+        <div
+          className="sheet-scroll"
+          onScroll={(event) => {
+            const header = event.currentTarget.querySelector(".sheet-header");
+            const next = header
+              ? header.getBoundingClientRect().bottom <
+                event.currentTarget.getBoundingClientRect().top + 72
+              : false;
+            setCondensed((current) => (current === next ? current : next));
+          }}
+        >
+          <div className="sheet-media">
+            <DrinkImage
+              name={recipe.nome}
+              imageId={recipe.id}
+              className="sheet-image"
+              showMissingLabel
+              eager
+            />
+          </div>
+
+          <div className="sheet-content">
+            <header className="sheet-header">
+              <p className="kicker">{recipe.categoria}</p>
               <h2 id={titleId}>{recipe.nome}</h2>
-              <p className="recipe-detail-summary">
-                {recipe.ingredientes.length} ingredientes{" "}
-                <span aria-hidden="true">·</span> {recipe.passos.length} passos
-                de preparação
-              </p>
-              <dl className="recipe-service-facts">
-                <div>
-                  <dt>
-                    <Wine size={16} aria-hidden="true" /> Copo
-                  </dt>
-                  <dd>{recipe.copo}</dd>
-                </div>
-                <div>
-                  <dt>Técnica</dt>
-                  <dd>{recipe.tecnica}</dd>
-                </div>
-              </dl>
-            </div>
-          </header>
-          <div className="recipe-detail-body">
+              {recipe.tags.length > 0 && (
+                <p className="sheet-tags">{recipe.tags.join(" · ")}</p>
+              )}
+            </header>
+
+            <dl className="service-facts">
+              <div>
+                <dt>
+                  <GlassWater size={16} aria-hidden="true" /> Copo
+                </dt>
+                <dd>{recipe.copo}</dd>
+              </div>
+              <div>
+                <dt>
+                  <Wand2 size={16} aria-hidden="true" /> Técnica
+                </dt>
+                <dd>{recipe.tecnica}</dd>
+              </div>
+              <div className="is-wide">
+                <dt>
+                  <Leaf size={16} aria-hidden="true" /> Garnish
+                </dt>
+                <dd>{recipe.garnish}</dd>
+              </div>
+            </dl>
+
             <section
-              className="recipe-ingredients"
-              aria-labelledby={`${titleId}-ingredients`}
+              className="sheet-section"
+              aria-labelledby={`${titleId}-ing`}
             >
-              <div className="recipe-section-heading">
-                <span className="recipe-section-number">01</span>
-                <h3 id={`${titleId}-ingredients`}>Ingredientes</h3>
-              </div>
-              <ul className="recipe-ingredient-list">
-                {recipe.ingredientes.map((ingredient, index) => (
-                  <li key={index}>
-                    <span>{ingredient.nome}</span>
-                    <strong>
-                      {ingredient.quantidade}{" "}
-                      <small>{ingredient.unidade}</small>
-                    </strong>
-                  </li>
-                ))}
-              </ul>
-              <div className="recipe-garnish">
-                <h4>
-                  <Leaf size={17} aria-hidden="true" /> Garnish & acabamento
-                </h4>
-                <p>{recipe.garnish}</p>
-              </div>
-            </section>
-            <section
-              className="recipe-preparation"
-              aria-labelledby={`${titleId}-preparation`}
-            >
-              <div className="recipe-section-heading">
-                <span className="recipe-section-number">02</span>
-                <h3 id={`${titleId}-preparation`}>Preparação</h3>
-              </div>
-              <div className="recipe-step-status">
-                <span aria-live="polite">
-                  {completed.length === recipe.passos.length
-                    ? "Preparação concluída"
-                    : `${completed.length} de ${recipe.passos.length} passos concluídos`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCompleted([])}
-                  disabled={completed.length === 0}
-                >
-                  <RotateCcw size={14} aria-hidden="true" /> Reiniciar
-                </button>
-              </div>
-              <ol className="recipe-step-list">
-                {recipe.passos.map((step, index) => (
-                  <li
-                    key={index}
-                    className={completed.includes(index) ? "is-complete" : ""}
-                  >
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={completed.includes(index)}
-                        onChange={() => toggleStep(index)}
-                        aria-label={`Passo ${index + 1}: ${step}`}
-                      />
-                      <span className="recipe-step-marker" aria-hidden="true">
-                        {completed.includes(index) ? (
-                          <Check size={17} />
+              <h3 className="section-title" id={`${titleId}-ing`}>
+                Ingredientes <span>{recipe.ingredientes.length}</span>
+              </h3>
+              <ul className="spec-list">
+                {recipe.ingredientes.map((ingredient, index) => {
+                  const measure = formatMeasure(ingredient);
+                  return (
+                    <li key={index}>
+                      <span className="spec-measure">
+                        {typeof measure === "string" ? (
+                          <b>{measure}</b>
                         ) : (
-                          String(index + 1).padStart(2, "0")
+                          <>
+                            <b>{measure.quantidade}</b>
+                            <small>{measure.unidade}</small>
+                          </>
                         )}
                       </span>
-                      <span className="recipe-step-text">{step}</span>
-                    </label>
-                  </li>
-                ))}
+                      <span className="spec-name">{ingredient.nome}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <section
+              className="sheet-section"
+              aria-labelledby={`${titleId}-prep`}
+            >
+              <div className="section-head">
+                <h3 className="section-title" id={`${titleId}-prep`}>
+                  Preparação <span>{total} passos</span>
+                </h3>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => setCompleted([])}
+                  disabled={done === 0}
+                >
+                  <RotateCcw size={15} aria-hidden="true" /> Recomeçar
+                </button>
+              </div>
+              <div
+                className="progress"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={total}
+                aria-valuenow={done}
+                aria-label="Passos concluídos"
+              >
+                <span style={{ width: `${(done / total) * 100}%` }} />
+              </div>
+              <p className="progress-label" aria-live="polite">
+                {done === total
+                  ? "Pronto a servir"
+                  : `${done} de ${total} concluídos · toca num passo para o marcar`}
+              </p>
+              <ol className="step-list">
+                {recipe.passos.map((step, index) => {
+                  const isDone = completed.includes(index);
+                  return (
+                    <li key={index} className={isDone ? "is-done" : ""}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={isDone}
+                          onChange={() => toggleStep(index)}
+                          aria-label={`Passo ${index + 1}: ${step}`}
+                        />
+                        <span className="step-marker" aria-hidden="true">
+                          {isDone ? (
+                            <Check size={18} strokeWidth={2.5} />
+                          ) : (
+                            index + 1
+                          )}
+                        </span>
+                        <span className="step-text">{step}</span>
+                      </label>
+                    </li>
+                  );
+                })}
               </ol>
             </section>
+
+            {recipe.observacoes && (
+              <aside className="service-note is-warning">
+                <p>
+                  <strong>Nota de serviço.</strong> {recipe.observacoes}
+                </p>
+              </aside>
+            )}
+
+            <footer className="sheet-footer">
+              {awake && (
+                <p className="awake-note">
+                  <SunMedium size={15} aria-hidden="true" /> O ecrã fica ligado
+                  enquanto a ficha estiver aberta.
+                </p>
+              )}
+              <button
+                type="button"
+                className="primary-button"
+                onClick={onClose}
+              >
+                Voltar às bebidas
+              </button>
+            </footer>
           </div>
-          {recipe.observacoes && (
-            <aside className="recipe-service-note">
-              <h3>Nota de serviço</h3>
-              <p>{recipe.observacoes}</p>
-            </aside>
-          )}
-          <footer className="recipe-detail-footer">
-            <span>O cuidado está em cada detalhe.</span>
-            <button type="button" onClick={onClose}>
-              Voltar às bebidas
-            </button>
-          </footer>
         </div>
       </div>
     </div>
